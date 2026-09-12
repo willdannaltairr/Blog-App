@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'app_shared.dart';
+import '../services/auth_service.dart';
+import '../utils/colors.dart';
+import '../utils/validators.dart';
+import '../widgets/common.dart';
 
 // Edit profil lokal (backend belum ada PUT /users/me).
-class EditProfilePage extends StatefulWidget {
-  const EditProfilePage({super.key});
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _name;
   late final TextEditingController _username;
-  late final TextEditingController _bio;
+  late final TextEditingController _email;
   bool _saving = false;
 
   @override
@@ -22,14 +25,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final u = AuthService.currentUser;
     _name = TextEditingController(text: u?.name ?? '');
     _username = TextEditingController(text: u?.username ?? '');
-    _bio = TextEditingController(text: u?.bio ?? '');
+    _email = TextEditingController(text: u?.email ?? '');
   }
 
   @override
   void dispose() {
     _name.dispose();
     _username.dispose();
-    _bio.dispose();
+    _email.dispose();
     super.dispose();
   }
 
@@ -39,11 +42,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
     await AuthService.updateLocalProfile(
       name: _name.text,
       username: _username.text,
-      bio: _bio.text,
+      email: _email.text,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil diperbarui (lokal)')),
+      const SnackBar(content: Text('Profil diperbarui')),
     );
     Navigator.pop(context, true);
   }
@@ -51,7 +54,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profil')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        leading:
+            const BackButton(color: AppColors.textPrimary),
+        title: const Text('Edit Profil'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -59,25 +68,35 @@ class _EditProfilePageState extends State<EditProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ThreadsTextField(
+              AppTextField(
                 controller: _name,
                 label: 'Nama',
                 hint: 'Nama lengkap',
                 validator: (v) => validateRequired(v, 'Nama'),
               ),
               const SizedBox(height: 12),
-              ThreadsTextField(
+              AppTextField(
                 controller: _username,
                 label: 'Username',
                 hint: 'tanpaspasi',
-                validator: validateUsername,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Username wajib diisi';
+                  }
+                  if (v.trim().length < 3) {
+                    return 'Username minimal 3 karakter';
+                  }
+                  if (v.contains(' ')) return 'Username tanpa spasi';
+                  return null;
+                },
               ),
               const SizedBox(height: 12),
-              ThreadsTextField(
-                controller: _bio,
-                label: 'Bio',
-                hint: 'Ceritakan singkat tentangmu',
-                maxLines: 3,
+              AppTextField(
+                controller: _email,
+                label: 'Email',
+                hint: 'nama@email.com',
+                keyboardType: TextInputType.emailAddress,
+                validator: validateEmail,
               ),
               const SizedBox(height: 20),
               ElevatedButton(
@@ -86,7 +105,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accentFg))
                     : const Text('Simpan'),
               ),
             ],
