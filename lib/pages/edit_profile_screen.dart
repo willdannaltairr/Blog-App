@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import '../utils/colors.dart';
-import '../utils/validators.dart';
 import '../widgets/common.dart';
 
 // Edit profil lokal (backend belum ada PUT /users/me).
@@ -39,16 +37,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    await AuthService.updateLocalProfile(
-      name: _name.text,
-      username: _username.text,
-      email: _email.text,
-    );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil diperbarui')),
-    );
-    Navigator.pop(context, true);
+    try {
+      await AuthService.updateProfile(
+        name: _name.text,
+        username: _username.text,
+        email: _email.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil diperbarui')),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override

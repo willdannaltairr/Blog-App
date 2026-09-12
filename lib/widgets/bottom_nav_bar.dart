@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
-import '../utils/constants.dart';
+import 'common.dart';
 
 // Bottom navigation pill melayang, dibuat manual (tanpa package UI).
 // Susunan: Home - Artikel - [+] - Kategori - Profil.

@@ -24,7 +24,7 @@ class AuthService {
   static String get defaultBaseUrl {
     if (kIsWeb) return 'http://10.2.11.153:8000';
     try {
-      if (Platform.isAndroid) return 'http://10.2.11.153:8000';
+      if (Platform.isAndroid) return 'http://192.168.1.15:8000';
     } catch (_) {}
     return 'http://localhost:8000';
   }
@@ -239,6 +239,52 @@ class AuthService {
       if (user != null) return user;
     }
     throw Exception(data['message']?.toString() ?? 'Sesi berakhir.');
+  }
+
+  // Edit profil ke server (PUT /api/auth/me). Name & email tersimpan
+  // permanen di DB; username hanya lokal (tidak ada kolom di DB).
+  static Future<UserModel> updateProfile({
+    String? name,
+    String? username,
+    String? email,
+  }) async {
+    final cur = _currentUser;
+    if (cur == null) throw Exception('Sesi berakhir. Login ulang.');
+    final base = await getBaseUrl();
+    final payload = <String, dynamic>{};
+    if (name != null) payload['name'] = name.trim();
+    if (email != null) payload['email'] = email.trim();
+    final res = await http.put(
+      Uri.parse('$base/api/auth/me'),
+      headers: _headers(withAuth: true),
+      body: jsonEncode(payload),
+    );
+    final data = _decode(res.body);
+    if (res.statusCode == 200) {
+      final user = _parseUser(data);
+      if (user == null) throw Exception('Respons server tidak valid.');
+      final token = _parseToken(data) ?? _token ?? '';
+      var nextUsername = (username ?? cur.username).trim();
+      if (nextUsername.isEmpty) nextUsername = cur.username;
+      final merged = UserModel(
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        username: nextUsername,
+        avatarUrl: cur.avatarUrl,
+        createdAt: cur.createdAt,
+      );
+      await _persist(merged, token);
+      return merged;
+    }
+    if (res.statusCode == 401) {
+      throw Exception(data['message']?.toString() ?? 'Sesi berakhir.');
+    }
+    final errs = data['errors'];
+    if (errs is List && errs.isNotEmpty) {
+      throw Exception(errs.map((e) => e.toString()).join(', '));
+    }
+    throw Exception(data['message']?.toString() ?? 'Gagal mengupdate profil');
   }
 
   // Edit profil lokal (backend belum ada PUT /users/me).

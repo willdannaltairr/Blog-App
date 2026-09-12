@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../services/auth_service.dart';
-import '../../utils/colors.dart';
-import '../../utils/validators.dart';
-import '../../widgets/common.dart';
-import '../main_shell.dart';
-import 'register_screen.dart';
+import '../services/auth_service.dart';
+import '../widgets/common.dart';
+import 'main_shell.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
@@ -24,6 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _name.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -36,11 +35,19 @@ class _LoginScreenState extends State<LoginScreen> {
       _error = null;
     });
     try {
-      await AuthService.login(_email.text, _password.text);
+      await AuthService.register(
+        name: _name.text,
+        email: _email.text,
+        password: _password.text,
+      );
       if (!mounted) return;
-      Navigator.pushReplacement(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful. Welcome!')),
+      );
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainShell()),
+        (route) => false,
       );
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -61,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 10),
               const Text(
-                'Login',
+                'Register',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.accentFg,
@@ -69,11 +76,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               if (_error != null) ...[
                 FormErrorBanner(message: _error!, light: true),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
               ],
+              AppTextField(
+                light: true,
+                controller: _name,
+                label: 'Name',
+                hint: 'Your name',
+                validator: (value) => validateRequired(value, 'Name'),
+              ),
+              const SizedBox(height: 12),
               AppTextField(
                 light: true,
                 controller: _email,
@@ -82,12 +97,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 validator: validateEmail,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               AppTextField(
                 light: true,
                 controller: _password,
                 label: 'Password',
-                hint: 'Enter your password',
+                hint: 'Minimum 6 characters',
                 obscure: _obscure,
                 validator: validatePassword,
                 suffix: IconButton(
@@ -123,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         )
                       : const Text(
-                          'Login',
+                          'Register',
                           style: TextStyle(
                             color: AppColors.accent,
                             fontWeight: FontWeight.w700,
@@ -131,24 +146,21 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Don\'t have any account? ',
+                    'Already have an account? ',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    ),
+                    onTap: () => Navigator.pop(context),
                     child: const Text(
-                      'Sign Up',
+                      'Login',
                       style: TextStyle(
                         color: AppColors.accentFg,
                         fontWeight: FontWeight.w800,

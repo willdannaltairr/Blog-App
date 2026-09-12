@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/category_model.dart';
 import '../services/api_service.dart';
-import '../utils/colors.dart';
 import '../widgets/common.dart';
 import 'category_articles_screen.dart';
 
@@ -17,6 +16,7 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   List<CategoryModel> _cats = [];
   Map<int, int> _counts = {};
+  Map<int, int> _primaryCounts = {};
   bool _loading = true;
   String? _error;
 
@@ -35,15 +35,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
       final cats = await ApiService.getCategories();
       final posts = await ApiService.getPosts();
       final counts = <int, int>{};
+      final primary = <int, int>{};
       for (final p in posts) {
         for (final id in p.allCategoryIds) {
           counts[id] = (counts[id] ?? 0) + 1;
         }
+        final first = p.firstCategoryId;
+        if (first != null) primary[first] = (primary[first] ?? 0) + 1;
       }
       if (!mounted) return;
       setState(() {
         _cats = cats;
         _counts = counts;
+        _primaryCounts = primary;
         _loading = false;
       });
     } catch (e) {
@@ -56,55 +60,30 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _showForm({CategoryModel? edit}) async {
-    final ctrl = TextEditingController(text: edit?.name ?? '');
-    final formKey = GlobalKey<FormState>();
-    final ok = await showDialog<bool>(
+    // Dialog stateful sendiri: controller hidup-mati ikut dialog,
+    // tidak dibuang manual dari sini (anti crash framework).
+    final name = await showDialog<String>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: Text(edit == null ? 'Kategori baru' : 'Edit kategori'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: ctrl,
-            autofocus: true,
-            style: const TextStyle(color: AppColors.textPrimary),
-            validator: (v) =>
-                v == null || v.trim().isEmpty ? 'Nama wajib diisi' : null,
-            decoration:
-                const InputDecoration(hintText: 'Nama kategori'),
-            onFieldSubmitted: (_) {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(c, true);
-              }
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c, false),
-              child: const Text('Batal')),
-          TextButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                Navigator.pop(c, true);
-              }
-            },
-            style:
-                TextButton.styleFrom(foregroundColor: AppColors.accent),
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
+      builder: (_) => _CategoryFormDialog(initial: edit?.name ?? ''),
     );
-    final name = ctrl.text.trim();
-    ctrl.dispose();
-    if (ok != true || !mounted) return;
-    if (name.isEmpty) return;
+    if (name == null || !mounted) return;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    // Cek duplikat di perangkat dulu biar pesan jelas tanpa ke server.
+    final bool duplikat = _cats.any((c) =>
+        c.name.trim().toLowerCase() == trimmed.toLowerCase() &&
+        c.id != edit?.id);
+    if (duplikat) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kategori "$trimmed" sudah ada')),
+      );
+      return;
+    }
     try {
       if (edit == null) {
-        await ApiService.createCategory(name);
+        await ApiService.createCategory(trimmed);
       } else {
-        await ApiService.updateCategory(edit.id, name);
+        await ApiService.updateCategory(edit.id, trimmed);
       }
       if (mounted) _load();
     } catch (e) {
@@ -118,14 +97,30 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _confirmDelete(CategoryModel c) async {
-    final used = _counts[c.id] ?? 0;
+    final usedPrimary = _primaryCounts[c.id] ?? 0;
+    // Server menolak hapus kategori utama artikel (FK), jadi cegah dari UI.
+    // Kategori yang hanya jadi tambahan masih bisa dihapus.
+    if (usedPrimary > 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: Text('"${c.name}" dipakai $usedPrimary artikel'),
+          content: const Text(
+              'Ubah dulu kategori artikelnya, baru kategori ini bisa dihapus.'),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(d),
+                child: const Text('Mengerti')),
+          ],
+        ),
+      );
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
         title: Text('Hapus "${c.name}"?'),
-        content: Text(used > 0
-            ? 'Kategori dipakai $used artikel. Lanjutkan hapus?'
-            : 'Kategori akan dihapus permanen.'),
+        content: const Text('Kategori akan dihapus permanen.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(d, false),
@@ -296,6 +291,69 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Dialog tambah/edit kategori. Controller milik dialog sendiri dan dibuang
+// di dispose() dialog, jadi aman dari crash framework saat dialog ditutup.
+class _CategoryFormDialog extends StatefulWidget {
+  final String initial;
+  const _CategoryFormDialog({required this.initial});
+
+  @override
+  State<_CategoryFormDialog> createState() => _CategoryFormDialogState();
+}
+
+class _CategoryFormDialogState extends State<_CategoryFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.initial);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState!.validate()) {
+      Navigator.of(context).pop(_ctrl.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isEdit = widget.initial.trim().isNotEmpty;
+    return AlertDialog(
+      title: Text(isEdit ? 'Edit kategori' : 'Kategori baru'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _ctrl,
+          autofocus: true,
+          style: const TextStyle(color: AppColors.textPrimary),
+          validator: (v) =>
+              v == null || v.trim().isEmpty ? 'Nama wajib diisi' : null,
+          decoration: const InputDecoration(hintText: 'Nama kategori'),
+          onFieldSubmitted: (_) => _submit(),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Batal')),
+        TextButton(
+          onPressed: _submit,
+          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
+          child: const Text('Simpan'),
+        ),
+      ],
     );
   }
 }

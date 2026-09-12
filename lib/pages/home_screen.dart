@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../utils/colors.dart';
-import '../utils/constants.dart';
 import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
@@ -137,13 +135,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _topBarContent() {
+    // Materi: String, var, final, operator perbandingan & logika.
     final user = AuthService.currentUser;
-    final name = (user?.username.trim().isNotEmpty == true
-            ? user!.username.trim()
-            : user?.name.trim() ?? 'Saya')
-        .trim();
-    final initial =
-        (name.isEmpty ? 'K' : name[0]).toUpperCase();
+    var name = user?.username.trim() ?? '';
+    if (name.isEmpty) name = user?.name.trim() ?? '';
+    if (name.isEmpty) name = 'Saya';
+    var initial = 'K';
+    if (name.isNotEmpty) initial = name[0].toUpperCase();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -174,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      name.isEmpty ? 'Saya' : name,
+                      name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

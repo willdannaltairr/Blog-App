@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../utils/colors.dart';
 import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
-import 'auth/login_screen.dart';
+import 'login_screen.dart';
 import 'edit_profile_screen.dart';
 
 // Profil: foto kiri + nama di samping, lalu artikel milik sendiri.
@@ -33,8 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final u = AuthService.currentUser;
     if (u == null) return false;
     if (p.authorId != null && p.authorId == u.id) return true;
-    return p.authorName.toLowerCase() == u.name.toLowerCase() ||
-        p.authorName.toLowerCase() == u.username.toLowerCase();
+    final String a = p.authorName.toLowerCase();
+    return a == u.name.toLowerCase() || a == u.username.toLowerCase();
   }
 
   Future<void> _load() async {
@@ -99,10 +98,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
-    final initial = (user?.name.trim().isNotEmpty == true
-            ? user!.name.trim()
-            : 'K')[0]
-        .toUpperCase();
+    var uname = user?.name.trim() ?? '';
+    if (uname.isEmpty) uname = 'K';
+    final String initial = uname[0].toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.background,

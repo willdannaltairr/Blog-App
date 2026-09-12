@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
-import '../utils/colors.dart';
-import '../utils/constants.dart';
-import 'auth/login_screen.dart';
+import '../widgets/common.dart';
+import 'login_screen.dart';
 import 'main_shell.dart';
 
 // Logo b fade-in di tengah, lalu cek token tersimpan.

@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../../services/auth_service.dart';
-import '../../utils/colors.dart';
-import '../../utils/validators.dart';
-import '../../widgets/common.dart';
-import '../main_shell.dart';
+import '../services/auth_service.dart';
+import '../widgets/common.dart';
+import 'main_shell.dart';
+import 'register_screen.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _name = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
@@ -24,7 +22,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
@@ -37,19 +34,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _error = null;
     });
     try {
-      await AuthService.register(
-        name: _name.text,
-        email: _email.text,
-        password: _password.text,
-      );
+      await AuthService.login(_email.text, _password.text);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful. Welcome!')),
-      );
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const MainShell()),
-        (route) => false,
       );
     } catch (e) {
       setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
@@ -70,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const SizedBox(height: 10),
               const Text(
-                'Register',
+                'Login',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppColors.accentFg,
@@ -78,19 +67,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               if (_error != null) ...[
                 FormErrorBanner(message: _error!, light: true),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
               ],
-              AppTextField(
-                light: true,
-                controller: _name,
-                label: 'Name',
-                hint: 'Your name',
-                validator: (value) => validateRequired(value, 'Name'),
-              ),
-              const SizedBox(height: 12),
               AppTextField(
                 light: true,
                 controller: _email,
@@ -99,12 +80,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 keyboardType: TextInputType.emailAddress,
                 validator: validateEmail,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               AppTextField(
                 light: true,
                 controller: _password,
                 label: 'Password',
-                hint: 'Minimum 6 characters',
+                hint: 'Enter your password',
                 obscure: _obscure,
                 validator: validatePassword,
                 suffix: IconButton(
@@ -140,7 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         )
                       : const Text(
-                          'Register',
+                          'Login',
                           style: TextStyle(
                             color: AppColors.accent,
                             fontWeight: FontWeight.w700,
@@ -148,21 +129,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Already have an account? ',
+                    'Don\'t have any account? ',
                     style: TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
                     ),
                   ),
                   GestureDetector(
-                    onTap: () => Navigator.pop(context),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                    ),
                     child: const Text(
-                      'Login',
+                      'Sign Up',
                       style: TextStyle(
                         color: AppColors.accentFg,
                         fontWeight: FontWeight.w800,

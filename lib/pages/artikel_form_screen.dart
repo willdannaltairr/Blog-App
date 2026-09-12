@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/category_model.dart';
 import '../models/post_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../utils/colors.dart';
-import '../utils/validators.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/common.dart';
 
@@ -33,20 +32,15 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
   @override
   void initState() {
     super.initState();
-    final b = widget.postToEdit;
+    final PostModel? b = widget.postToEdit;
     _title = TextEditingController(text: b?.title ?? '');
     _content = TextEditingController(text: b?.content ?? '');
     _imageUrl = TextEditingController(text: b?.imageUrl ?? '');
-    // Author menyesuaikan profil yang sedang login (buat baru) /
-    // pakai author lama saat edit.
+    // Author menyesuaikan profil login (materi: String + var).
     final u = AuthService.currentUser;
-    final profileName = (u?.name.trim().isNotEmpty == true
-            ? u!.name.trim()
-            : u?.username.trim() ?? '')
-        .trim();
-    _author = TextEditingController(
-      text: b?.authorName ?? profileName,
-    );
+    var profileName = u?.name.trim() ?? '';
+    if (profileName.isEmpty) profileName = u?.username.trim() ?? '';
+    _author = TextEditingController(text: b?.authorName ?? profileName);
     _loadCats();
   }
 
@@ -89,6 +83,24 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     });
   }
 
+  // Pilih gambar dari galeri (package image_picker dari pub.dev).
+  // Hasil path disimpan ke _imageUrl agar ikut terkirim ke backend.
+  Future<void> _pickImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? file =
+          await picker.pickImage(source: ImageSource.gallery);
+      if (file == null) return;
+      if (!mounted) return;
+      setState(() => _imageUrl.text = file.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memilih gambar: $e')),
+      );
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selected.isEmpty) {
@@ -105,21 +117,19 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
       _error = null;
     });
     try {
-      final isEdit = widget.postToEdit != null;
-      final image = _imageUrl.text.trim().isEmpty
-          ? null
-          : _imageUrl.text.trim();
-      final ids = _selected.toList();
+      final bool isEdit = widget.postToEdit != null;
+      // Backend hanya menerima URL (maks 255 char). Path lokal galeri
+      // tidak bisa dibuka perangkat lain, jadi kirim null.
+      final String rawImg = _imageUrl.text.trim();
+      final bool isNet = rawImg.startsWith('http://') ||
+          rawImg.startsWith('https://');
+      final String? image = rawImg.isEmpty || !isNet ? null : rawImg;
+      final List<int> ids = _selected.toList();
       // Buat baru: author selalu menyesuaikan profil yang login.
-      final profileName = (user.name.trim().isNotEmpty
-              ? user.name.trim()
-              : user.username.trim())
-          .trim();
-      final author = isEdit
-          ? _author.text.trim().isEmpty
-              ? profileName
-              : _author.text.trim()
-          : (_author.text.trim().isEmpty ? profileName : _author.text.trim());
+      var profileName = user.name.trim();
+      if (profileName.isEmpty) profileName = user.username.trim();
+      var author = _author.text.trim();
+      if (author.isEmpty) author = profileName;
       if (!isEdit) {
         await ApiService.createPost(
           title: _title.text,
@@ -133,7 +143,7 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
           id: widget.postToEdit!.id,
           title: _title.text,
           content: _content.text,
-          author: _author.text,
+          author: author,
           image: image,
           categoryIds: ids,
         );
@@ -226,8 +236,16 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
               AppTextField(
                 controller: _imageUrl,
                 label: 'Gambar (opsional)',
-                hint: 'https://...',
+                hint: 'https://... atau pilih dari galeri',
                 onChanged: (_) => setState(() {}),
+                suffix: IconButton(
+                  icon: const Icon(
+                    Icons.image_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                  tooltip: 'Pilih dari galeri',
+                  onPressed: _pickImage,
+                ),
               ),
               const SizedBox(height: 8),
               if (_imageUrl.text.trim().isNotEmpty)

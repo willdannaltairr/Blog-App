@@ -3,8 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/post_model.dart';
-import '../utils/colors.dart';
-import '../utils/validators.dart' show timeAgo;
+import 'common.dart';
 
 bool isNetworkUrl(String url) =>
     url.startsWith('http://') || url.startsWith('https://');
@@ -84,11 +83,12 @@ class PostFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final author = post.authorName.trim().isEmpty
-        ? 'Anonymous'
-        : post.authorName.trim();
-    final names = post.displayCategoryNames(categoryNames);
-    final content = post.content.trim();
+    var author = post.authorName.trim();
+    if (author.isEmpty) author = 'Anonymous';
+    final List<String> names = post.displayCategoryNames(categoryNames);
+    final String content = post.content.trim();
+    var huruf = 'A';
+    if (author.isNotEmpty) huruf = author[0].toUpperCase();
 
     return GestureDetector(
       onTap: onTap,
@@ -109,7 +109,7 @@ class PostFeedCard extends StatelessWidget {
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    author[0].toUpperCase(),
+                    huruf,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800,

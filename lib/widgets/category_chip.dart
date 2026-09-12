@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/colors.dart';
+import 'common.dart';
 
 // Chip kategori: aktif = putih, nonaktif = kartu gelap berborder.
 class CategoryChip extends StatelessWidget {

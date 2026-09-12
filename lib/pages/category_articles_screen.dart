@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../models/category_model.dart';
 import '../models/post_model.dart';
 import '../services/api_service.dart';
-import '../utils/colors.dart';
 import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
