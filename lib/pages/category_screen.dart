@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/category_model.dart';
 import '../services/api_service.dart';
+import '../widgets/category_chip.dart';
 import '../widgets/common.dart';
 import 'category_articles_screen.dart';
 
-// CRUD kategori dengan kartu gelap + dialog form.
+// Daftar kategori: hanya lihat + tambah. Tanpa edit/hapus.
 class CategoryScreen extends StatefulWidget {
   final bool inTab;
   const CategoryScreen({super.key, this.inTab = false});
@@ -16,7 +17,6 @@ class CategoryScreen extends StatefulWidget {
 class _CategoryScreenState extends State<CategoryScreen> {
   List<CategoryModel> _cats = [];
   Map<int, int> _counts = {};
-  Map<int, int> _primaryCounts = {};
   bool _loading = true;
   String? _error;
 
@@ -35,19 +35,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
       final cats = await ApiService.getCategories();
       final posts = await ApiService.getPosts();
       final counts = <int, int>{};
-      final primary = <int, int>{};
       for (final p in posts) {
         for (final id in p.allCategoryIds) {
           counts[id] = (counts[id] ?? 0) + 1;
         }
-        final first = p.firstCategoryId;
-        if (first != null) primary[first] = (primary[first] ?? 0) + 1;
       }
       if (!mounted) return;
       setState(() {
         _cats = cats;
         _counts = counts;
-        _primaryCounts = primary;
         _loading = false;
       });
     } catch (e) {
@@ -59,20 +55,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
-  Future<void> _showForm({CategoryModel? edit}) async {
-    // Dialog stateful sendiri: controller hidup-mati ikut dialog,
-    // tidak dibuang manual dari sini (anti crash framework).
+  Future<void> _showAdd() async {
     final name = await showDialog<String>(
       context: context,
-      builder: (_) => _CategoryFormDialog(initial: edit?.name ?? ''),
+      builder: (_) => const CategoryFormDialog(),
     );
     if (name == null || !mounted) return;
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
     // Cek duplikat di perangkat dulu biar pesan jelas tanpa ke server.
-    final bool duplikat = _cats.any((c) =>
-        c.name.trim().toLowerCase() == trimmed.toLowerCase() &&
-        c.id != edit?.id);
+    final bool duplikat = _cats.any(
+        (c) => c.name.trim().toLowerCase() == trimmed.toLowerCase());
     if (duplikat) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Kategori "$trimmed" sudah ada')),
@@ -80,63 +73,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
       return;
     }
     try {
-      if (edit == null) {
-        await ApiService.createCategory(trimmed);
-      } else {
-        await ApiService.updateCategory(edit.id, trimmed);
-      }
-      if (mounted) _load();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content:
-                Text(e.toString().replaceFirst('Exception: ', ''))),
-      );
-    }
-  }
-
-  Future<void> _confirmDelete(CategoryModel c) async {
-    final usedPrimary = _primaryCounts[c.id] ?? 0;
-    // Server menolak hapus kategori utama artikel (FK), jadi cegah dari UI.
-    // Kategori yang hanya jadi tambahan masih bisa dihapus.
-    if (usedPrimary > 0) {
-      await showDialog<void>(
-        context: context,
-        builder: (d) => AlertDialog(
-          title: Text('"${c.name}" dipakai $usedPrimary artikel'),
-          content: const Text(
-              'Ubah dulu kategori artikelnya, baru kategori ini bisa dihapus.'),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(d),
-                child: const Text('Mengerti')),
-          ],
-        ),
-      );
-      return;
-    }
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (d) => AlertDialog(
-        title: Text('Hapus "${c.name}"?'),
-        content: const Text('Kategori akan dihapus permanen.'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(d, false),
-              child: const Text('Batal')),
-          TextButton(
-            onPressed: () => Navigator.pop(d, true),
-            style: TextButton.styleFrom(
-                foregroundColor: AppColors.danger),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-    if (ok != true) return;
-    try {
-      await ApiService.deleteCategory(c.id);
+      await ApiService.createCategory(trimmed);
       if (mounted) _load();
     } catch (e) {
       if (!mounted) return;
@@ -234,23 +171,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                   ],
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 20,
-                                    color:
-                                        AppColors.textSecondary),
-                                onPressed: () =>
-                                    _showForm(edit: cat),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 20,
-                                    color: AppColors.danger),
-                                onPressed: () =>
-                                    _confirmDelete(cat),
-                              ),
                             ],
                           ),
                         ),
@@ -281,7 +201,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                   IconButton(
                     icon: const Icon(Icons.add_circle,
                         color: AppColors.accent, size: 30),
-                    onPressed: () => _showForm(),
+                    onPressed: () => _showAdd(),
                     tooltip: 'Tambah kategori',
                   ),
                 ],
@@ -291,69 +211,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-// Dialog tambah/edit kategori. Controller milik dialog sendiri dan dibuang
-// di dispose() dialog, jadi aman dari crash framework saat dialog ditutup.
-class _CategoryFormDialog extends StatefulWidget {
-  final String initial;
-  const _CategoryFormDialog({required this.initial});
-
-  @override
-  State<_CategoryFormDialog> createState() => _CategoryFormDialogState();
-}
-
-class _CategoryFormDialogState extends State<_CategoryFormDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: widget.initial);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pop(_ctrl.text.trim());
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isEdit = widget.initial.trim().isNotEmpty;
-    return AlertDialog(
-      title: Text(isEdit ? 'Edit kategori' : 'Kategori baru'),
-      content: Form(
-        key: _formKey,
-        child: TextFormField(
-          controller: _ctrl,
-          autofocus: true,
-          style: const TextStyle(color: AppColors.textPrimary),
-          validator: (v) =>
-              v == null || v.trim().isEmpty ? 'Nama wajib diisi' : null,
-          decoration: const InputDecoration(hintText: 'Nama kategori'),
-          onFieldSubmitted: (_) => _submit(),
-        ),
-      ),
-      actions: [
-        TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Batal')),
-        TextButton(
-          onPressed: _submit,
-          style: TextButton.styleFrom(foregroundColor: AppColors.accent),
-          child: const Text('Simpan'),
-        ),
-      ],
     );
   }
 }

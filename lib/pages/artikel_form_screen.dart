@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/common.dart';
+import '../widgets/post_card.dart';
 
 // Tambah & edit artikel: judul, konten, pilih banyak kategori,
 // gambar opsional.
@@ -41,6 +42,8 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     var profileName = u?.name.trim() ?? '';
     if (profileName.isEmpty) profileName = u?.username.trim() ?? '';
     _author = TextEditingController(text: b?.authorName ?? profileName);
+    // Pilihan awal: kategori lama saat edit (buat baru: kosong).
+    _selected.addAll(b?.allCategoryIds ?? const []);
     _loadCats();
   }
 
@@ -59,12 +62,9 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
       if (!mounted) return;
       setState(() {
         _cats = cats;
-        // Saat edit: tandai kategori lama yang masih tersedia.
-        final old = widget.postToEdit?.allCategoryIds ?? const [];
+        // Pertahankan pilihan user; buang yang sudah tidak tersedia.
         final available = cats.map((c) => c.id).toSet();
-        _selected
-          ..clear()
-          ..addAll(old.where(available.contains));
+        _selected.retainAll(available);
         _loadingCats = false;
       });
     } catch (_) {
@@ -81,6 +81,40 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
       }
       _error = null;
     });
+  }
+
+  // Tambah kategori langsung dari form artikel, otomatis terpilih.
+  Future<void> _addCategoryInline() async {
+    final name = await showDialog<String>(
+      context: context,
+      builder: (_) => const CategoryFormDialog(),
+    );
+    if (name == null || !mounted) return;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    for (final c in _cats) {
+      if (c.name.trim().toLowerCase() == trimmed.toLowerCase()) {
+        setState(() => _selected.add(c.id));
+        return;
+      }
+    }
+    try {
+      final created = await ApiService.createCategory(trimmed);
+      if (!mounted) return;
+      setState(() {
+        _cats = [..._cats, created];
+        _selected.add(created.id);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Kategori "$trimmed" ditambahkan')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 
   // Pilih gambar dari galeri (package image_picker dari pub.dev).
@@ -118,12 +152,18 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     });
     try {
       final bool isEdit = widget.postToEdit != null;
-      // Backend hanya menerima URL (maks 255 char). Path lokal galeri
-      // tidak bisa dibuka perangkat lain, jadi kirim null.
+      // Gambar dikirim apa adanya (URL atau path lokal galeri, maks 255).
+      // File galeri tetap di HP; tulisannya tersimpan di DB blogs.image.
       final String rawImg = _imageUrl.text.trim();
-      final bool isNet = rawImg.startsWith('http://') ||
-          rawImg.startsWith('https://');
-      final String? image = rawImg.isEmpty || !isNet ? null : rawImg;
+      if (rawImg.length > 255) {
+        setState(() {
+          _saving = false;
+          _error =
+              'Gambar terlalu panjang (maks 255 karakter). Pakai URL yang lebih pendek.';
+        });
+        return;
+      }
+      final String? image = rawImg.isEmpty ? null : rawImg;
       final List<int> ids = _selected.toList();
       // Buat baru: author selalu menyesuaikan profil yang login.
       var profileName = user.name.trim();
@@ -201,11 +241,44 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
                 validator: (v) => validateRequired(v, 'Konten'),
               ),
               const SizedBox(height: 12),
-              const Text('Kategori (bisa pilih banyak)',
-                  style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13)),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text('Kategori (bisa pilih banyak)',
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13)),
+                  ),
+                  GestureDetector(
+                    onTap: _addCategoryInline,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add,
+                              size: 16, color: AppColors.accentFg),
+                          SizedBox(width: 2),
+                          Text(
+                            'Tambah',
+                            style: TextStyle(
+                              color: AppColors.accentFg,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 6),
               _CategoryMultiSelect(
                 loading: _loadingCats,
@@ -333,43 +406,13 @@ class _CategoryMultiSelect extends StatelessWidget {
   }
 }
 
-// Preview kecil: network pakai Image.network, file lokal pakai teks path.
+// Preview gambar: URL network maupun file lokal galeri langsung tampil.
 class PostImagePreview extends StatelessWidget {
   final String url;
   const PostImagePreview({super.key, required this.url});
 
   @override
   Widget build(BuildContext context) {
-    final isNet =
-        url.startsWith('http://') || url.startsWith('https://');
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: isNet
-          ? Image.network(
-              url,
-              height: 180,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (c, e, s) => Container(
-                height: 80,
-                alignment: Alignment.center,
-                color: AppColors.surface,
-                child: const Text('Gambar tidak dapat dimuat',
-                    style: TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 12)),
-              ),
-            )
-          : Container(
-              height: 60,
-              alignment: Alignment.center,
-              color: AppColors.surface,
-              child: Text(
-                'Gambar lokal dipilih',
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
-              ),
-            ),
-    );
+    return PostImage(url: url, height: 180, radius: 18);
   }
 }

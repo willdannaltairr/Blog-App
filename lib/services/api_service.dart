@@ -84,26 +84,6 @@ class ApiService {
     throw Exception(_msg(data, 'Gagal membuat kategori'));
   }
 
-  static Future<void> updateCategory(int id, String name) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/categories/$id');
-    final response = await http.put(
-      url,
-      headers: _headers(),
-      body: jsonEncode({'name': name.trim()}),
-    );
-    if (response.statusCode == 200) return;
-    throw Exception(_msg(_decode(response.body), 'Gagal mengupdate kategori'));
-  }
-
-  static Future<void> deleteCategory(int id) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/categories/$id');
-    final response = await http.delete(url, headers: _headers());
-    if (response.statusCode == 200) return;
-    throw Exception(_msg(_decode(response.body), 'Gagal menghapus kategori'));
-  }
-
   // ---------- Artikel ----------
 
   static Future<List<PostModel>> getPosts({
