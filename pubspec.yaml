@@ -34,7 +34,6 @@ dependencies:
   http: ^1.6.0
   shared_preferences: ^2.5.5
   google_fonts: ^6.2.1
-  cached_network_image: ^3.4.1
   image_picker: ^1.1.2
 
 dev_dependencies:

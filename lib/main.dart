@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'pages/splash_screen.dart';
-import 'services/auth_service.dart';
-import 'widgets/common.dart';
+import 'pages/splash_page.dart';
+import 'services/api.dart';
+import 'widgets/widgets.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +18,7 @@ class BLogApp extends StatelessWidget {
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: const SplashScreen(),
+      home: const SplashPage(),
     );
   }
 }
