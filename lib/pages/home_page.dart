@@ -87,10 +87,6 @@ class _HomePageState extends State<HomePage> {
                 toolbarHeight: 56,
                 titleSpacing: 0,
                 title: _topBarContent(),
-                bottom: const PreferredSize(
-                  preferredSize: Size.fromHeight(1),
-                  child: Divider(height: 1, color: AppColors.surfaceBorder),
-                ),
               ),
               SliverToBoxAdapter(
                 child: Padding(

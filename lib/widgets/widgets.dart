@@ -572,7 +572,6 @@ class PostFeedCard extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1),
         ],
       ),
     );
