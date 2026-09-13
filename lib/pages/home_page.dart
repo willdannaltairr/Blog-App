@@ -92,6 +92,34 @@ class _HomePageState extends State<HomePage> {
                   child: Divider(height: 1, color: AppColors.surfaceBorder),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selamat datang, ${_welcomeName()}!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Senang melihatmu kembali.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               if (_loading)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -128,11 +156,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _topBarContent() {
+  String _welcomeName() {
     final user = AuthService.currentUser;
-    String name = user?.username.trim() ?? '';
-    if (name.isEmpty) name = user?.name.trim() ?? '';
+    String name = user?.name.trim() ?? '';
+    if (name.isEmpty) name = user?.username.trim() ?? '';
     if (name.isEmpty) name = 'Saya';
+    return name;
+  }
+
+  Widget _topBarContent() {
+    String name = _welcomeName();
     String initial = name.isNotEmpty ? name[0].toUpperCase() : 'K';
 
     return Padding(
