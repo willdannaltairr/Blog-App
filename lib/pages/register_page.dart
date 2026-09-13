@@ -29,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _daftar() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {

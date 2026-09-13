@@ -128,11 +128,14 @@ class AuthPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 48,
+      width: double.infinity,
       child: ElevatedButton(
-        onPressed: loading ? null : onPressed,
+        onPressed: loading ? () {} : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.background,
           foregroundColor: AppColors.accent,
+          disabledBackgroundColor: AppColors.background,
+          disabledForegroundColor: AppColors.accent,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
@@ -143,7 +146,7 @@ class AuthPrimaryButton extends StatelessWidget {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                  strokeWidth: 2,
+                  strokeWidth: 2.5,
                   color: AppColors.accent,
                 ),
               )
@@ -152,6 +155,7 @@ class AuthPrimaryButton extends StatelessWidget {
                 style: const TextStyle(
                   color: AppColors.accent,
                   fontWeight: FontWeight.w700,
+                  fontSize: 15,
                 ),
               ),
       ),

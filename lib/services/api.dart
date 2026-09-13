@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -114,11 +115,13 @@ class AuthService {
     String body = jsonEncode({'email': email.trim(), 'password': password});
 
     try {
-      var res = await http.post(
-        Uri.parse('$base/api/auth/login'),
-        headers: _headers(),
-        body: body,
-      );
+      var res = await http
+          .post(
+            Uri.parse('$base/api/auth/login'),
+            headers: _headers(),
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
       var json = _decode(res.body);
 
       if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -134,27 +137,41 @@ class AuthService {
         throw Exception(
             json['message'] ?? 'Login gagal. Periksa email & password.');
       }
+    } on TimeoutException {
+      throw Exception(
+          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
     } catch (e) {
       String msg = e.toString();
-      if (msg.contains('Login gagal')) rethrow;
+      if (msg.contains('Login gagal') ||
+          msg.contains('Tidak bisa terhubung')) {
+        rethrow;
+      }
     }
 
-    var res = await http.post(
-      Uri.parse('$base/api/login'),
-      headers: _headers(),
-      body: body,
-    );
-    var json = _decode(res.body);
+    try {
+      var res = await http
+          .post(
+            Uri.parse('$base/api/login'),
+            headers: _headers(),
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
+      var json = _decode(res.body);
 
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      var user = _parseUser(json);
-      if (user == null) throw Exception('Respons login tidak valid.');
-      String token = _parseToken(json) ?? 'legacy-${user.id}';
-      await _save(user, token);
-      return user;
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        var user = _parseUser(json);
+        if (user == null) throw Exception('Respons login tidak valid.');
+        String token = _parseToken(json) ?? 'legacy-${user.id}';
+        await _save(user, token);
+        return user;
+      }
+
+      throw Exception(
+          json['message'] ?? 'Login gagal. Periksa email & password.');
+    } on TimeoutException {
+      throw Exception(
+          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
     }
-
-    throw Exception(json['message'] ?? 'Login gagal. Periksa email & password.');
   }
 
   static Future<UserModel> register({
@@ -170,11 +187,13 @@ class AuthService {
     });
 
     try {
-      var res = await http.post(
-        Uri.parse('$base/api/auth/register'),
-        headers: _headers(),
-        body: body,
-      );
+      var res = await http
+          .post(
+            Uri.parse('$base/api/auth/register'),
+            headers: _headers(),
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
       var json = _decode(res.body);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
@@ -194,29 +213,41 @@ class AuthService {
         }
         throw Exception(json['message'] ?? 'Registrasi gagal.');
       }
+    } on TimeoutException {
+      throw Exception(
+          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
     } catch (e) {
       String msg = e.toString();
-      if (msg.contains('Registrasi gagal') || msg.contains('sudah terdaftar')) {
+      if (msg.contains('Registrasi gagal') ||
+          msg.contains('sudah terdaftar') ||
+          msg.contains('Tidak bisa terhubung')) {
         rethrow;
       }
     }
 
-    var res = await http.post(
-      Uri.parse('$base/api/users'),
-      headers: _headers(),
-      body: body,
-    );
-    var json = _decode(res.body);
+    try {
+      var res = await http
+          .post(
+            Uri.parse('$base/api/users'),
+            headers: _headers(),
+            body: body,
+          )
+          .timeout(const Duration(seconds: 15));
+      var json = _decode(res.body);
 
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      return login(email.trim(), password);
-    }
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        return await login(email.trim(), password);
+      }
 
-    var errors = json['errors'];
-    if (errors is List && errors.isNotEmpty) {
-      throw Exception(errors.first.toString());
+      var errors = json['errors'];
+      if (errors is List && errors.isNotEmpty) {
+        throw Exception(errors.first.toString());
+      }
+      throw Exception(json['message'] ?? 'Registrasi gagal.');
+    } on TimeoutException {
+      throw Exception(
+          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
     }
-    throw Exception(json['message'] ?? 'Registrasi gagal.');
   }
 
   static Future<UserModel> fetchMe() async {

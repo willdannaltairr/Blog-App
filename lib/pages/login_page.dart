@@ -28,6 +28,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
