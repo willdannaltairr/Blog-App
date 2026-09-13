@@ -7,25 +7,18 @@ import 'home_page.dart';
 import 'profile_page.dart';
 
 class MainShell extends StatefulWidget {
-  final int initialIndex;
-  const MainShell({super.key, this.initialIndex = 0});
+  const MainShell({super.key});
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  late int _index;
+  int _index = 0;
   Key _homeKey = UniqueKey();
   Key _artikelKey = UniqueKey();
   Key _catKey = UniqueKey();
   Key _profileKey = UniqueKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _index = widget.initialIndex;
-  }
 
   void _refreshAll() {
     setState(() {
@@ -62,7 +55,7 @@ class _MainShellState extends State<MainShell> {
                 onOpenProfile: () => setState(() => _index = 3),
               ),
               ArtikelPage(key: _artikelKey),
-              CategoryPage(key: _catKey, inTab: true),
+              CategoryPage(key: _catKey),
               ProfilePage(key: _profileKey),
             ],
           ),

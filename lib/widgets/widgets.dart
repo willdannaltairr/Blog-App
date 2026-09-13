@@ -1,5 +1,4 @@
 import 'dart:io' show File;
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/models.dart';
@@ -68,10 +67,7 @@ class AuthBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _AuthPatternPainter(height),
-      child: Container(color: AppColors.background),
-    );
+    return Container(color: AppColors.background);
   }
 }
 
@@ -201,57 +197,6 @@ class AuthSwitchRow extends StatelessWidget {
       ],
     );
   }
-}
-
-class _AuthPatternPainter extends CustomPainter {
-  final double height;
-
-  _AuthPatternPainter(this.height);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    var bg = Paint()..color = AppColors.background;
-    var grey1 = Paint()..color = AppColors.pattern;
-    var grey2 = Paint()..color = AppColors.patternAlt;
-    var line = Paint()
-      ..color = AppColors.surfaceBorder
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    canvas.drawRect(Offset.zero & size, bg);
-    canvas.drawCircle(Offset(size.width * 0.12, -32), 96, grey1);
-    canvas.drawCircle(Offset(size.width * 0.82, 4), 112, grey2);
-    canvas.drawCircle(Offset(size.width * 0.58, height * 0.78), 72, grey1);
-    canvas.drawCircle(Offset(size.width * 0.08, height * 0.72), 58, grey2);
-    canvas.drawCircle(Offset(size.width * 0.92, height * 0.62), 48, grey1);
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Offset(size.width * 0.68, height * 0.12) & const Size(72, 72),
-        const Radius.circular(18),
-      ),
-      grey2,
-    );
-
-    canvas.save();
-    canvas.translate(size.width * 0.28, height * 0.42);
-    canvas.rotate(0.45);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        const Offset(-30, -30) & const Size(60, 60),
-        const Radius.circular(14),
-      ),
-      grey1,
-    );
-    canvas.restore();
-
-    canvas.drawCircle(Offset(size.width * 0.42, height * 0.2), 24, line);
-    canvas.drawCircle(Offset(size.width * 0.76, height * 0.48), 18, line);
-    canvas.drawCircle(Offset(size.width * 0.18, height * 0.5), 14, line);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class AppTextField extends StatelessWidget {
@@ -452,10 +397,6 @@ class FormErrorBanner extends StatelessWidget {
   }
 }
 
-bool isNetworkUrl(String url) {
-  return url.startsWith('http://') || url.startsWith('https://');
-}
-
 class PostImage extends StatelessWidget {
   final String? url;
   final double height;
@@ -475,19 +416,15 @@ class PostImage extends StatelessWidget {
         );
     final u = (url ?? '').trim();
     if (u.isEmpty) return fallback();
+
     Widget img;
-    if (isNetworkUrl(u)) {
-      img = CachedNetworkImage(
-        imageUrl: u,
+    if (u.startsWith('http://') || u.startsWith('https://')) {
+      img = Image.network(
+        u,
         height: height,
         width: double.infinity,
         fit: BoxFit.cover,
-        placeholder: (c, s) => Container(
-          height: height,
-          width: double.infinity,
-          color: AppColors.placeholder,
-        ),
-        errorWidget: (c, s, e) => fallback(),
+        errorBuilder: (c, e, s) => fallback(),
       );
     } else if (!kIsWeb) {
       img = Image.file(
@@ -498,13 +435,7 @@ class PostImage extends StatelessWidget {
         errorBuilder: (c, e, s) => fallback(),
       );
     } else {
-      img = Image.network(
-        u,
-        height: height,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (c, e, s) => fallback(),
-      );
+      return fallback();
     }
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),

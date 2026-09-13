@@ -5,8 +5,7 @@ import '../widgets/widgets.dart';
 import 'artikel_detail_page.dart';
 
 class CategoryPage extends StatefulWidget {
-  final bool inTab;
-  const CategoryPage({super.key, this.inTab = false});
+  const CategoryPage({super.key});
 
   @override
   State<CategoryPage> createState() => _CategoryPageState();

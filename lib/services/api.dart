@@ -6,6 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 
+const _serverMsg =
+    'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.';
+
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'cached_user_session';
@@ -13,7 +16,6 @@ class AuthService {
 
   static String? _token;
   static UserModel? _currentUser;
-  static String _baseUrl = '';
 
   static String? get token => _token;
   static UserModel? get currentUser => _currentUser;
@@ -28,20 +30,8 @@ class AuthService {
   }
 
   static Future<String> getBaseUrl() async {
-    if (_baseUrl.isNotEmpty) return _baseUrl;
     final prefs = await SharedPreferences.getInstance();
-    _baseUrl = prefs.getString(_baseUrlKey) ?? defaultBaseUrl;
-    return _baseUrl;
-  }
-
-  static Future<void> setBaseUrl(String url) async {
-    String next = url.trim();
-    if (next.endsWith('/')) {
-      next = next.substring(0, next.length - 1);
-    }
-    _baseUrl = next;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_baseUrlKey, next);
+    return prefs.getString(_baseUrlKey) ?? defaultBaseUrl;
   }
 
   static Map<String, String> _headers({bool withAuth = false}) {
@@ -132,18 +122,15 @@ class AuthService {
           return user;
         }
       }
-
       if (res.statusCode != 404) {
         throw Exception(
             json['message'] ?? 'Login gagal. Periksa email & password.');
       }
     } on TimeoutException {
-      throw Exception(
-          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
+      throw Exception(_serverMsg);
     } catch (e) {
       String msg = e.toString();
-      if (msg.contains('Login gagal') ||
-          msg.contains('Tidak bisa terhubung')) {
+      if (msg.contains('Login gagal') || msg.contains('Tidak bisa terhubung')) {
         rethrow;
       }
     }
@@ -165,12 +152,10 @@ class AuthService {
         await _save(user, token);
         return user;
       }
-
       throw Exception(
           json['message'] ?? 'Login gagal. Periksa email & password.');
     } on TimeoutException {
-      throw Exception(
-          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
+      throw Exception(_serverMsg);
     }
   }
 
@@ -205,7 +190,6 @@ class AuthService {
         }
         return await login(email.trim(), password);
       }
-
       if (res.statusCode != 404) {
         var errors = json['errors'];
         if (errors is List && errors.isNotEmpty) {
@@ -214,8 +198,7 @@ class AuthService {
         throw Exception(json['message'] ?? 'Registrasi gagal.');
       }
     } on TimeoutException {
-      throw Exception(
-          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
+      throw Exception(_serverMsg);
     } catch (e) {
       String msg = e.toString();
       if (msg.contains('Registrasi gagal') ||
@@ -238,24 +221,24 @@ class AuthService {
       if (res.statusCode == 200 || res.statusCode == 201) {
         return await login(email.trim(), password);
       }
-
       var errors = json['errors'];
       if (errors is List && errors.isNotEmpty) {
         throw Exception(errors.first.toString());
       }
       throw Exception(json['message'] ?? 'Registrasi gagal.');
     } on TimeoutException {
-      throw Exception(
-          'Tidak bisa terhubung ke server. Pastikan HP dan laptop satu WiFi dan backend jalan.');
+      throw Exception(_serverMsg);
     }
   }
 
   static Future<UserModel> fetchMe() async {
     String base = await getBaseUrl();
-    var res = await http.get(
-      Uri.parse('$base/api/auth/me'),
-      headers: _headers(withAuth: true),
-    );
+    var res = await http
+        .get(
+          Uri.parse('$base/api/auth/me'),
+          headers: _headers(withAuth: true),
+        )
+        .timeout(const Duration(seconds: 15));
     var json = _decode(res.body);
 
     if (res.statusCode == 200) {
@@ -279,11 +262,13 @@ class AuthService {
     if (name != null) payload['name'] = name.trim();
     if (email != null) payload['email'] = email.trim();
 
-    var res = await http.put(
-      Uri.parse('$base/api/auth/me'),
-      headers: _headers(withAuth: true),
-      body: jsonEncode(payload),
-    );
+    var res = await http
+        .put(
+          Uri.parse('$base/api/auth/me'),
+          headers: _headers(withAuth: true),
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 15));
     var json = _decode(res.body);
 
     if (res.statusCode == 200) {
@@ -309,7 +294,6 @@ class AuthService {
     if (res.statusCode == 401) {
       throw Exception(json['message'] ?? 'Sesi berakhir.');
     }
-
     var errors = json['errors'];
     if (errors is List && errors.isNotEmpty) {
       throw Exception(errors.map((e) => e.toString()).join(', '));
@@ -359,14 +343,11 @@ class ApiService {
 
   static Future<List<CategoryModel>> getCategories() async {
     String base = await AuthService.getBaseUrl();
-    var res = await http.get(
-      Uri.parse('$base/api/categories'),
-      headers: _headers(),
-    );
+    var res = await http
+        .get(Uri.parse('$base/api/categories'), headers: _headers())
+        .timeout(const Duration(seconds: 15));
 
-    if (res.statusCode != 200) {
-      throw Exception('Gagal memuat kategori');
-    }
+    if (res.statusCode != 200) throw Exception('Gagal memuat kategori');
 
     var list = _decode(res.body)['data'];
     if (list is! List) return [];
@@ -382,11 +363,13 @@ class ApiService {
 
   static Future<CategoryModel> createCategory(String name) async {
     String base = await AuthService.getBaseUrl();
-    var res = await http.post(
-      Uri.parse('$base/api/categories'),
-      headers: _headers(),
-      body: jsonEncode({'name': name.trim()}),
-    );
+    var res = await http
+        .post(
+          Uri.parse('$base/api/categories'),
+          headers: _headers(),
+          body: jsonEncode({'name': name.trim()}),
+        )
+        .timeout(const Duration(seconds: 15));
     var json = _decode(res.body);
 
     if (res.statusCode == 200 || res.statusCode == 201) {
@@ -400,7 +383,6 @@ class ApiService {
       }
       return CategoryModel(id: 0, name: name.trim());
     }
-
     throw Exception(_errorMsg(json, 'Gagal membuat kategori'));
   }
 
@@ -420,11 +402,11 @@ class ApiService {
 
     var url = Uri.parse('$base/api/blogs')
         .replace(queryParameters: query.isEmpty ? null : query);
-    var res = await http.get(url, headers: _headers());
+    var res = await http
+        .get(url, headers: _headers())
+        .timeout(const Duration(seconds: 15));
 
-    if (res.statusCode != 200) {
-      throw Exception('Gagal memuat artikel');
-    }
+    if (res.statusCode != 200) throw Exception('Gagal memuat artikel');
 
     var list = _decode(res.body)['data'];
     if (list is! List) return [];
@@ -440,10 +422,9 @@ class ApiService {
 
   static Future<PostModel> getPostById(int id) async {
     String base = await AuthService.getBaseUrl();
-    var res = await http.get(
-      Uri.parse('$base/api/blogs/$id'),
-      headers: _headers(),
-    );
+    var res = await http
+        .get(Uri.parse('$base/api/blogs/$id'), headers: _headers())
+        .timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) {
       var raw = _decode(res.body)['data'];
@@ -461,25 +442,25 @@ class ApiService {
     String? image,
     required List<int> categoryIds,
   }) async {
-    if (categoryIds.isEmpty) {
-      throw Exception('Pilih minimal 1 kategori');
-    }
+    if (categoryIds.isEmpty) throw Exception('Pilih minimal 1 kategori');
 
     String base = await AuthService.getBaseUrl();
     String? img = (image ?? '').trim().isEmpty ? null : image!.trim();
 
-    var res = await http.post(
-      Uri.parse('$base/api/blogs'),
-      headers: _headers(),
-      body: jsonEncode({
-        'title': title.trim(),
-        'content': content.trim(),
-        'author': author.trim(),
-        'image': img,
-        'category_ids': categoryIds,
-        'category_id': categoryIds.first,
-      }),
-    );
+    var res = await http
+        .post(
+          Uri.parse('$base/api/blogs'),
+          headers: _headers(),
+          body: jsonEncode({
+            'title': title.trim(),
+            'content': content.trim(),
+            'author': author.trim(),
+            'image': img,
+            'category_ids': categoryIds,
+            'category_id': categoryIds.first,
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200 || res.statusCode == 201) return;
     throw Exception(_errorMsg(_decode(res.body), 'Gagal membuat artikel'));
@@ -503,18 +484,18 @@ class ApiService {
       payload['image'] = image.trim().isEmpty ? null : image.trim();
     }
     if (categoryIds != null) {
-      if (categoryIds.isEmpty) {
-        throw Exception('Pilih minimal 1 kategori');
-      }
+      if (categoryIds.isEmpty) throw Exception('Pilih minimal 1 kategori');
       payload['category_ids'] = categoryIds;
       payload['category_id'] = categoryIds.first;
     }
 
-    var res = await http.put(
-      Uri.parse('$base/api/blogs/$id'),
-      headers: _headers(),
-      body: jsonEncode(payload),
-    );
+    var res = await http
+        .put(
+          Uri.parse('$base/api/blogs/$id'),
+          headers: _headers(),
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) return;
     throw Exception(_errorMsg(_decode(res.body), 'Gagal mengupdate artikel'));
@@ -522,10 +503,9 @@ class ApiService {
 
   static Future<void> deletePost(int id) async {
     String base = await AuthService.getBaseUrl();
-    var res = await http.delete(
-      Uri.parse('$base/api/blogs/$id'),
-      headers: _headers(),
-    );
+    var res = await http
+        .delete(Uri.parse('$base/api/blogs/$id'), headers: _headers())
+        .timeout(const Duration(seconds: 15));
 
     if (res.statusCode == 200) return;
     throw Exception(_errorMsg(_decode(res.body), 'Gagal menghapus artikel'));

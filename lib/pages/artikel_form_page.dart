@@ -266,12 +266,49 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
                 ],
               ),
               const SizedBox(height: 6),
-              _CategoryMultiSelect(
-                loading: _loadingCats,
-                categories: _cats,
-                selected: _selected,
-                onToggle: _toggle,
-              ),
+              if (_loadingCats)
+                Container(
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.surfaceBorder),
+                  ),
+                  child: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: AppColors.accent),
+                  ),
+                )
+              else if (_cats.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.surfaceBorder),
+                  ),
+                  child: const Text(
+                    'Belum ada kategori. Tambahkan dulu di tab Kategori.',
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: 13),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final c in _cats)
+                      CategoryChip(
+                        label: c.name,
+                        active: _selected.contains(c.id),
+                        onTap: () => _toggle(c.id),
+                      ),
+                  ],
+                ),
               const SizedBox(height: 12),
               AppTextField(
                 controller: _author,
@@ -308,10 +345,10 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
               ),
               const SizedBox(height: 8),
               if (_imageUrl.text.trim().isNotEmpty)
-                PostImagePreview(url: _imageUrl.text.trim()),
+                PostImage(url: _imageUrl.text.trim(), height: 180, radius: 18),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving ? () {} : _save,
                 child: _saving
                     ? const SizedBox(
                         width: 20,
@@ -326,77 +363,5 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
         ),
       ),
     );
-  }
-}
-
-class _CategoryMultiSelect extends StatelessWidget {
-  final bool loading;
-  final List<CategoryModel> categories;
-  final Set<int> selected;
-  final ValueChanged<int> onToggle;
-
-  const _CategoryMultiSelect({
-    required this.loading,
-    required this.categories,
-    required this.selected,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (loading) {
-      return Container(
-        height: 50,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.surfaceBorder),
-        ),
-        child: const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-              strokeWidth: 2, color: AppColors.accent),
-        ),
-      );
-    }
-    if (categories.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.surfaceBorder),
-        ),
-        child: const Text(
-          'Belum ada kategori. Tambahkan dulu di tab Kategori.',
-          style: TextStyle(
-              color: AppColors.textSecondary, fontSize: 13),
-        ),
-      );
-    }
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final c in categories)
-          CategoryChip(
-            label: c.name,
-            active: selected.contains(c.id),
-            onTap: () => onToggle(c.id),
-          ),
-      ],
-    );
-  }
-}
-
-class PostImagePreview extends StatelessWidget {
-  final String url;
-  const PostImagePreview({super.key, required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return PostImage(url: url, height: 180, radius: 18);
   }
 }

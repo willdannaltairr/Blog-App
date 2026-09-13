@@ -97,17 +97,6 @@ class AppTheme {
       ),
       dialogTheme: const DialogThemeData(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(20)),
-          side: BorderSide(color: AppColors.surfaceBorder),
-        ),
-      ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          side: BorderSide(color: AppColors.surfaceBorder),
-        ),
       ),
     );
 
@@ -176,11 +165,6 @@ class AppTheme {
             borderRadius: BorderRadius.circular(AppConstants.buttonRadius),
           ),
         ),
-      ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.surfaceBorder,
-        thickness: 1,
-        space: 0,
       ),
     );
   }

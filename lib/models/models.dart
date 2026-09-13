@@ -1,3 +1,14 @@
+int _toInt(dynamic value) {
+  if (value is int) return value;
+  return int.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+int? _toIntNull(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  return int.tryParse(value.toString());
+}
+
 class UserModel {
   final int id;
   final String name;
@@ -23,16 +34,8 @@ class UserModel {
     if (uname.isEmpty && email.contains('@')) {
       uname = email.split('@').first;
     }
-
-    int id = 0;
-    if (json['id'] is int) {
-      id = json['id'];
-    } else {
-      id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
-    }
-
     return UserModel(
-      id: id,
+      id: _toInt(json['id']),
       name: json['name']?.toString() ?? '',
       email: email,
       username: uname,
@@ -64,23 +67,12 @@ class CategoryModel {
   CategoryModel({required this.id, required this.name, this.createdAt});
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
-    int id = 0;
-    if (json['id'] is int) {
-      id = json['id'];
-    } else {
-      id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
-    }
-
     return CategoryModel(
-      id: id,
+      id: _toInt(json['id']),
       name: json['name']?.toString() ?? '',
       createdAt:
           json['created_at']?.toString() ?? json['createdAt']?.toString(),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name};
   }
 }
 
@@ -95,7 +87,6 @@ class PostModel {
   final int? authorId;
   final String authorName;
   final String? createdAt;
-  final String? updatedAt;
 
   PostModel({
     required this.id,
@@ -108,7 +99,6 @@ class PostModel {
     this.authorId,
     this.authorName = 'Anonymous',
     this.createdAt,
-    this.updatedAt,
   });
 
   List<int> get allCategoryIds {
@@ -123,105 +113,59 @@ class PostModel {
     return allCategoryIds.contains(id);
   }
 
-  List<String> displayCategoryNames(Map<int, String> namesById) {
-    List<String> names = [];
+  List<String> displayCategoryNames(Map<int, String> names) {
+    List<String> result = [];
     for (int id in allCategoryIds) {
-      String name = (namesById[id] ?? '').trim();
-      if (name.isNotEmpty && !names.contains(name)) {
-        names.add(name);
+      String name = (names[id] ?? '').trim();
+      if (name.isNotEmpty && !result.contains(name)) {
+        result.add(name);
       }
     }
-    if (names.isEmpty && categoryName.trim().isNotEmpty) {
-      names.add(categoryName.trim());
+    if (result.isEmpty && categoryName.trim().isNotEmpty) {
+      result.add(categoryName.trim());
     }
-    return names;
+    return result;
   }
 
-  PostModel withResolvedCategory(Map<int, String> namesById) {
-    List<String> names = displayCategoryNames(namesById);
-    return copyWith(
-      categoryName: names.isEmpty ? categoryName : names.first,
-    );
-  }
-
-  PostModel copyWith({
-    int? id,
-    String? title,
-    String? content,
-    String? imageUrl,
-    int? categoryId,
-    List<int>? categoryIds,
-    String? categoryName,
-    int? authorId,
-    String? authorName,
-    String? createdAt,
-    String? updatedAt,
-  }) {
+  PostModel withResolvedCategory(Map<int, String> names) {
+    List<String> list = displayCategoryNames(names);
     return PostModel(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      content: content ?? this.content,
-      imageUrl: imageUrl ?? this.imageUrl,
-      categoryId: categoryId ?? this.categoryId,
-      categoryIds: categoryIds ?? this.categoryIds,
-      categoryName: categoryName ?? this.categoryName,
-      authorId: authorId ?? this.authorId,
-      authorName: authorName ?? this.authorName,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      id: id,
+      title: title,
+      content: content,
+      imageUrl: imageUrl,
+      categoryId: categoryId,
+      categoryIds: categoryIds,
+      categoryName: list.isEmpty ? categoryName : list.first,
+      authorId: authorId,
+      authorName: authorName,
+      createdAt: createdAt,
     );
-  }
-
-  static int toInt(dynamic value, int fallback) {
-    if (value is int) return value;
-    return int.tryParse(value?.toString() ?? '') ?? fallback;
-  }
-
-  static int? toIntOrNull(dynamic value) {
-    if (value == null) return null;
-    if (value is int) return value;
-    return int.tryParse(value.toString());
-  }
-
-  static List<int> parseIds(dynamic raw) {
-    List<int> ids = [];
-
-    void addOne(dynamic v) {
-      int? id = toIntOrNull(v);
-      if (id != null && id > 0 && !ids.contains(id)) {
-        ids.add(id);
-      }
-    }
-
-    if (raw is List) {
-      for (var item in raw) {
-        if (item is Map && item['id'] != null) {
-          addOne(item['id']);
-        } else {
-          addOne(item);
-        }
-      }
-    } else if (raw != null) {
-      addOne(raw);
-    }
-    return ids;
   }
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
-    List<int> ids = parseIds(
-      json['category_ids'] ?? json['categoryIds'] ?? json['categories'],
-    );
+    List<int> ids = [];
+    var rawIds =
+        json['category_ids'] ?? json['categoryIds'] ?? json['categories'];
+    if (rawIds is List) {
+      for (var item in rawIds) {
+        int? id = item is Map ? _toIntNull(item['id']) : _toIntNull(item);
+        if (id != null && id > 0 && !ids.contains(id)) ids.add(id);
+      }
+    } else if (rawIds != null) {
+      int? id = _toIntNull(rawIds);
+      if (id != null && id > 0) ids.add(id);
+    }
 
-    int? singleId = toIntOrNull(json['category_id'] ?? json['categoryId']);
-    if (singleId != null && !ids.contains(singleId)) {
-      ids.add(singleId);
+    int? single = _toIntNull(json['category_id'] ?? json['categoryId']);
+    if (single != null && single > 0 && !ids.contains(single)) {
+      ids.add(single);
     }
 
     String catName = json['category_name']?.toString() ??
         json['categoryName']?.toString() ??
         '';
-
-    if (json['categories'] is List && catName.isEmpty) {
+    if (catName.isEmpty && json['categories'] is List) {
       for (var item in json['categories']) {
         if (item is Map && item['name'] != null) {
           catName = item['name'].toString();
@@ -231,22 +175,20 @@ class PostModel {
     }
 
     return PostModel(
-      id: toInt(json['id'], 0),
+      id: _toInt(json['id']),
       title: json['title']?.toString() ?? 'Tanpa judul',
       content: json['content']?.toString() ?? '',
       imageUrl: json['image']?.toString() ?? json['imageUrl']?.toString(),
       categoryId: ids.isEmpty ? null : ids.first,
       categoryIds: ids,
       categoryName: catName,
-      authorId: toIntOrNull(json['author_id'] ?? json['authorId']),
+      authorId: _toIntNull(json['author_id'] ?? json['authorId']),
       authorName: json['author']?.toString() ??
           json['author_name']?.toString() ??
           json['authorName']?.toString() ??
           'Anonymous',
       createdAt:
           json['created_at']?.toString() ?? json['createdAt']?.toString(),
-      updatedAt:
-          json['updated_at']?.toString() ?? json['updatedAt']?.toString(),
     );
   }
 }
