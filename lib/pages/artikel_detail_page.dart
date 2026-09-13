@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_form_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_form_page.dart';
 
-class ArtikelDetailScreen extends StatefulWidget {
+class ArtikelDetailPage extends StatefulWidget {
   final int postId;
-  final PostModel? initial;
 
-  const ArtikelDetailScreen({super.key, required this.postId, this.initial});
+  const ArtikelDetailPage({super.key, required this.postId});
 
   @override
-  State<ArtikelDetailScreen> createState() => _ArtikelDetailScreenState();
+  State<ArtikelDetailPage> createState() => _ArtikelDetailPageState();
 }
 
-class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
+class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
   PostModel? _post;
   final Map<int, String> _catName = {};
   bool _loading = true;
@@ -27,13 +24,7 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _post = widget.initial;
-    if (_post != null) {
-      _loading = false;
-      _refreshSilently();
-    } else {
-      _load();
-    }
+    _load();
   }
 
   bool get _isMine {
@@ -69,21 +60,6 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
         _loading = false;
       });
     }
-  }
-
-  Future<void> _refreshSilently() async {
-    try {
-      final cats = await ApiService.getCategories();
-      final names = {for (final c in cats) c.id: c.name};
-      final p = await ApiService.getPostById(widget.postId);
-      if (!mounted) return;
-      setState(() {
-        _catName
-          ..clear()
-          ..addAll(names);
-        _post = p.withResolvedCategory(names);
-      });
-    } catch (_) {}
   }
 
   Future<void> _confirmDelete() async {
@@ -128,42 +104,37 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
     final changed = await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (_) => ArtikelFormScreen(postToEdit: _post)),
+          builder: (_) => ArtikelFormPage(postToEdit: _post)),
     );
     if (changed == true && mounted) _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget body;
+    if (_loading) {
+      body = const LoadingView();
+    } else if (_error != null) {
+      body = ErrorView(message: _error!, onRetry: _load);
+    } else if (_post == null) {
+      body = const EmptyView(message: 'Artikel tidak ditemukan');
+    } else {
+      body = _content();
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(child: body),
+      );
+    }
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _loading
-          ? const SafeArea(child: LoadingView())
-          : _error != null
-              ? SafeArea(
-                  child: Column(
-                    children: [
-                      AppBar(
-                        backgroundColor: AppColors.background,
-                        leading: const BackButton(
-                            color: AppColors.textPrimary),
-                      ),
-                      Expanded(
-                          child: ErrorView(
-                              message: _error!, onRetry: _load)),
-                    ],
-                  ),
-                )
-              : _post == null
-                  ? const SafeArea(
-                      child:
-                          EmptyView(message: 'Artikel tidak ditemukan'))
-                  : _content(),
+      appBar: AppBar(backgroundColor: AppColors.background),
+      body: SafeArea(child: body),
     );
   }
 
   Widget _content() {
     final p = _post!;
+    List<String> labels = p.displayCategoryNames(_catName);
     final needsToggle = p.content.length > 220;
     final text = _expanded || !needsToggle
         ? p.content
@@ -200,13 +171,12 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
               children: [
                 PostImage(url: p.imageUrl, height: 240, radius: 20),
                 const SizedBox(height: 16),
-                if (p.displayCategoryNames(_catName).isNotEmpty)
+                if (labels.isNotEmpty)
                   Wrap(
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      for (final n
-                          in p.displayCategoryNames(_catName))
+                      for (final n in labels)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 6),

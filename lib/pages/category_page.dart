@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
-import '../models/category_model.dart';
-import '../services/api_service.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/common.dart';
-import 'category_articles_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_detail_page.dart';
 
-class CategoryScreen extends StatefulWidget {
-  final bool inTab;
-  const CategoryScreen({super.key, this.inTab = false});
+class CategoryPage extends StatefulWidget {
+  const CategoryPage({super.key});
 
   @override
-  State<CategoryScreen> createState() => _CategoryScreenState();
+  State<CategoryPage> createState() => _CategoryPageState();
 }
 
-class _CategoryScreenState extends State<CategoryScreen> {
+class _CategoryPageState extends State<CategoryPage> {
   List<CategoryModel> _cats = [];
   Map<int, int> _counts = {};
   bool _loading = true;
@@ -112,7 +110,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => CategoryArticlesScreen(
+                                builder: (_) => CategoryArticlesPage(
                                   category: cat,
                                 ),
                               ),
@@ -210,6 +208,110 @@ class _CategoryScreenState extends State<CategoryScreen> {
             Expanded(child: body),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class CategoryArticlesPage extends StatefulWidget {
+  final CategoryModel category;
+
+  const CategoryArticlesPage({super.key, required this.category});
+
+  @override
+  State<CategoryArticlesPage> createState() =>
+      _CategoryArticlesPageState();
+}
+
+class _CategoryArticlesPageState
+    extends State<CategoryArticlesPage> {
+  List<PostModel> _posts = [];
+  final Map<int, String> _catName = {};
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final cats = await ApiService.getCategories();
+      final posts = await ApiService.getPosts();
+      if (!mounted) return;
+      final names = {for (final c in cats) c.id: c.name};
+      setState(() {
+        _catName
+          ..clear()
+          ..addAll(names);
+        _posts = posts
+            .map((p) => p.withResolvedCategory(names))
+            .where((p) => p.hasCategory(widget.category.id))
+            .toList();
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '');
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _openDetail(PostModel p) async {
+    final changed = await Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => ArtikelDetailPage(postId: p.id)),
+    );
+    if (changed == true && mounted) _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        leading:
+            const BackButton(color: AppColors.textPrimary),
+        title: Text(widget.category.name),
+      ),
+      body: SafeArea(
+        child: _loading
+            ? const LoadingView()
+            : _error != null
+                ? ErrorView(message: _error!, onRetry: _load)
+                : _posts.isEmpty
+                    ? const EmptyView(
+                        message:
+                            'Belum ada artikel di kategori ini.')
+                    : RefreshIndicator(
+                        color: AppColors.accent,
+                        onRefresh: _load,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(
+                              16, 12, 16, 24),
+                          itemCount: _posts.length,
+                          separatorBuilder: (c, i) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (c, i) {
+                            final p = _posts[i];
+                            return PostFeedCard(
+                              post: p,
+                              categoryNames: _catName,
+                              onTap: () => _openDetail(p),
+                            );
+                          },
+                        ),
+                      ),
       ),
     );
   }

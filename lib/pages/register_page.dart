@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
 import 'main_shell.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _nama = TextEditingController();
   final _email = TextEditingController();
@@ -29,6 +29,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _daftar() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {

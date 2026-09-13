@@ -1,32 +1,24 @@
 import 'package:flutter/material.dart';
-import '../widgets/common.dart';
-import '../widgets/bottom_nav_bar.dart';
-import 'artikel_form_screen.dart';
-import 'artikel_screen.dart';
-import 'category_screen.dart';
-import 'home_screen.dart';
-import 'profile_screen.dart';
+import '../widgets/widgets.dart';
+import 'artikel_form_page.dart';
+import 'artikel_page.dart';
+import 'category_page.dart';
+import 'home_page.dart';
+import 'profile_page.dart';
 
 class MainShell extends StatefulWidget {
-  final int initialIndex;
-  const MainShell({super.key, this.initialIndex = 0});
+  const MainShell({super.key});
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  late int _index;
+  int _index = 0;
   Key _homeKey = UniqueKey();
   Key _artikelKey = UniqueKey();
   Key _catKey = UniqueKey();
   Key _profileKey = UniqueKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _index = widget.initialIndex;
-  }
 
   void _refreshAll() {
     setState(() {
@@ -40,7 +32,7 @@ class _MainShellState extends State<MainShell> {
   Future<void> _openAdd() async {
     final created = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const ArtikelFormScreen()),
+      MaterialPageRoute(builder: (_) => const ArtikelFormPage()),
     );
     if (created == true) {
       _refreshAll();
@@ -57,14 +49,14 @@ class _MainShellState extends State<MainShell> {
           IndexedStack(
             index: _index,
             children: [
-              HomeScreen(
+              HomePage(
                 key: _homeKey,
                 onOpenSearch: () => setState(() => _index = 1),
                 onOpenProfile: () => setState(() => _index = 3),
               ),
-              ArtikelScreen(key: _artikelKey),
-              CategoryScreen(key: _catKey, inTab: true),
-              ProfileScreen(key: _profileKey),
+              ArtikelPage(key: _artikelKey),
+              CategoryPage(key: _catKey),
+              ProfilePage(key: _profileKey),
             ],
           ),
           Positioned(

@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_detail_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_detail_page.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomePage extends StatefulWidget {
   final VoidCallback? onOpenSearch;
   final VoidCallback? onOpenProfile;
 
-  const HomeScreen({
+  const HomePage({
     super.key,
     this.onOpenSearch,
     this.onOpenProfile,
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomePageState extends State<HomePage> {
   List<PostModel> _posts = [];
   final Map<int, String> _catName = {};
   bool _loading = true;
@@ -63,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openDetail(PostModel p) async {
     final changed = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ArtikelDetailScreen(postId: p.id)),
+      MaterialPageRoute(builder: (_) => ArtikelDetailPage(postId: p.id)),
     );
     if (changed == true && mounted) _load();
   }
@@ -89,9 +87,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 toolbarHeight: 56,
                 titleSpacing: 0,
                 title: _topBarContent(),
-                bottom: const PreferredSize(
-                  preferredSize: Size.fromHeight(1),
-                  child: Divider(height: 1, color: AppColors.surfaceBorder),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Selamat datang, ${_welcomeName()}!',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Senang melihatmu kembali.',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               if (_loading)
@@ -130,11 +152,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _topBarContent() {
+  String _welcomeName() {
     final user = AuthService.currentUser;
-    String name = user?.username.trim() ?? '';
-    if (name.isEmpty) name = user?.name.trim() ?? '';
+    String name = user?.name.trim() ?? '';
+    if (name.isEmpty) name = user?.username.trim() ?? '';
     if (name.isEmpty) name = 'Saya';
+    return name;
+  }
+
+  Widget _topBarContent() {
+    String name = _welcomeName();
     String initial = name.isNotEmpty ? name[0].toUpperCase() : 'K';
 
     return Padding(

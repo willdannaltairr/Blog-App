@@ -1,21 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_detail_screen.dart';
-import 'login_screen.dart';
-import 'edit_profile_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_detail_page.dart';
+import 'login_page.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfilePageState extends State<ProfilePage> {
   List<PostModel> _mine = [];
   final Map<int, String> _catName = {};
   bool _loading = true;
@@ -89,7 +86,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const LoginPage()),
       (r) => false,
     );
   }
@@ -225,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context,
                     MaterialPageRoute(
                         builder: (_) =>
-                            const EditProfileScreen()),
+                            const EditProfilePage()),
                   );
                   if (changed == true && mounted) {
                     setState(() {});
@@ -267,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (_) =>
-                                    ArtikelDetailScreen(
+                                    ArtikelDetailPage(
                                         postId: p.id)),
                           );
                           if (changed == true && mounted) {
@@ -276,6 +273,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         },
                       ),
                     )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class EditProfilePage extends StatefulWidget {
+  const EditProfilePage({super.key});
+
+  @override
+  State<EditProfilePage> createState() => _EditProfilePageState();
+}
+
+class _EditProfilePageState extends State<EditProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _name;
+  late final TextEditingController _username;
+  late final TextEditingController _email;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final u = AuthService.currentUser;
+    _name = TextEditingController(text: u?.name ?? '');
+    _username = TextEditingController(text: u?.username ?? '');
+    _email = TextEditingController(text: u?.email ?? '');
+  }
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _username.dispose();
+    _email.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await AuthService.updateProfile(
+        name: _name.text,
+        username: _username.text,
+        email: _email.text,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profil diperbarui')),
+      );
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content:
+                Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        leading:
+            const BackButton(color: AppColors.textPrimary),
+        title: const Text('Edit Profil'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppTextField(
+                controller: _name,
+                label: 'Nama',
+                hint: 'Nama lengkap',
+                validator: (v) => validateRequired(v, 'Nama'),
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _username,
+                label: 'Username',
+                hint: 'tanpaspasi',
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return 'Username wajib diisi';
+                  }
+                  if (v.trim().length < 3) {
+                    return 'Username minimal 3 karakter';
+                  }
+                  if (v.contains(' ')) return 'Username tanpa spasi';
+                  return null;
+                },
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _email,
+                label: 'Email',
+                hint: 'nama@email.com',
+                keyboardType: TextInputType.emailAddress,
+                validator: validateEmail,
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _saving ? null : _save,
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accentFg))
+                    : const Text('Simpan'),
+              ),
             ],
           ),
         ),

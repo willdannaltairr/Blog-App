@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
 import 'main_shell.dart';
-import 'register_screen.dart';
+import 'register_page.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
@@ -28,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    if (_loading) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -112,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => const RegisterScreen()),
+                        builder: (_) => const RegisterPage()),
                   );
                 },
               ),
