@@ -1,4 +1,3 @@
-// Model kategori. Kompatibel dengan respons backend lama maupun baru.
 class CategoryModel {
   final int id;
   final String name;
@@ -7,15 +6,22 @@ class CategoryModel {
   CategoryModel({required this.id, required this.name, this.createdAt});
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
+    int id = 0;
+    if (json['id'] is int) {
+      id = json['id'];
+    } else {
+      id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
+    }
+
     return CategoryModel(
-      id: json['id'] is int
-          ? json['id'] as int
-          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: id,
       name: json['name']?.toString() ?? '',
       createdAt:
           json['created_at']?.toString() ?? json['createdAt']?.toString(),
     );
   }
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name};
+  }
 }

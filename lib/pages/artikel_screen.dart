@@ -8,7 +8,6 @@ import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
 
-// Semua artikel: search bar, chip kategori di bawahnya, feed 1 kolom.
 class ArtikelScreen extends StatefulWidget {
   const ArtikelScreen({super.key});
 
@@ -40,8 +39,6 @@ class _ArtikelScreenState extends State<ArtikelScreen> {
     super.dispose();
   }
 
-  // Ambil dari server (dengan kata kunci bila ada), lalu saring kategori
-  // di perangkat agar tetap benar untuk artikel multi-kategori.
   Future<void> _reload() async {
     if (_loading == false) setState(() => _searching = true);
     try {

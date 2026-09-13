@@ -1,6 +1,3 @@
-// Model artikel. Satu artikel bisa punya banyak kategori dan satu
-// kategori bisa dipakai banyak artikel. Field lama `categoryId` tetap
-// dipertahankan sebagai kategori pertama agar kompatibel dengan backend.
 class PostModel {
   final int id;
   final String title;
@@ -28,26 +25,25 @@ class PostModel {
     this.updatedAt,
   });
 
-  // Semua id kategori unik: dari list baru + field lama.
   List<int> get allCategoryIds {
-    final ids = <int>[...categoryIds];
+    List<int> ids = List.from(categoryIds);
     if (categoryId != null && !ids.contains(categoryId)) {
       ids.add(categoryId!);
     }
     return ids;
   }
 
-  int? get firstCategoryId =>
-      allCategoryIds.isEmpty ? null : allCategoryIds.first;
+  bool hasCategory(int id) {
+    return allCategoryIds.contains(id);
+  }
 
-  bool hasCategory(int id) => allCategoryIds.contains(id);
-
-  // Nama kategori sesuai urutan id. Pakai peta id -> nama dari server.
   List<String> displayCategoryNames(Map<int, String> namesById) {
-    final names = <String>[];
-    for (final id in allCategoryIds) {
-      final name = (namesById[id] ?? '').trim();
-      if (name.isNotEmpty && !names.contains(name)) names.add(name);
+    List<String> names = [];
+    for (int id in allCategoryIds) {
+      String name = (namesById[id] ?? '').trim();
+      if (name.isNotEmpty && !names.contains(name)) {
+        names.add(name);
+      }
     }
     if (names.isEmpty && categoryName.trim().isNotEmpty) {
       names.add(categoryName.trim());
@@ -56,7 +52,7 @@ class PostModel {
   }
 
   PostModel withResolvedCategory(Map<int, String> namesById) {
-    final names = displayCategoryNames(namesById);
+    List<String> names = displayCategoryNames(namesById);
     return copyWith(
       categoryName: names.isEmpty ? categoryName : names.first,
     );
@@ -66,102 +62,105 @@ class PostModel {
     int? id,
     String? title,
     String? content,
-    String? Function()? imageUrl,
-    int? Function()? categoryId,
+    String? imageUrl,
+    int? categoryId,
     List<int>? categoryIds,
     String? categoryName,
-    int? Function()? authorId,
+    int? authorId,
     String? authorName,
-    String? Function()? createdAt,
-    String? Function()? updatedAt,
+    String? createdAt,
+    String? updatedAt,
   }) {
     return PostModel(
       id: id ?? this.id,
       title: title ?? this.title,
       content: content ?? this.content,
-      imageUrl: imageUrl != null ? imageUrl() : this.imageUrl,
-      categoryId: categoryId != null ? categoryId() : this.categoryId,
+      imageUrl: imageUrl ?? this.imageUrl,
+      categoryId: categoryId ?? this.categoryId,
       categoryIds: categoryIds ?? this.categoryIds,
       categoryName: categoryName ?? this.categoryName,
-      authorId: authorId != null ? authorId() : this.authorId,
+      authorId: authorId ?? this.authorId,
       authorName: authorName ?? this.authorName,
-      createdAt: createdAt != null ? createdAt() : this.createdAt,
-      updatedAt: updatedAt != null ? updatedAt() : this.updatedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
-  static int _toInt(dynamic v, int fallback) {
-    if (v is int) return v;
-    return int.tryParse(v?.toString() ?? '') ?? fallback;
+  static int toInt(dynamic value, int fallback) {
+    if (value is int) return value;
+    return int.tryParse(value?.toString() ?? '') ?? fallback;
   }
 
-  static int? _toIntOrNull(dynamic v) {
-    if (v == null) return null;
-    if (v is int) return v;
-    return int.tryParse(v.toString());
+  static int? toIntOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
   }
 
-  // Kumpulkan id kategori dari berbagai bentuk respons backend.
-  static List<int> _parseIds(dynamic raw) {
-    final ids = <int>[];
-    void add(dynamic v) {
-      final id = _toIntOrNull(v);
-      if (id != null && id > 0 && !ids.contains(id)) ids.add(id);
+  static List<int> parseIds(dynamic raw) {
+    List<int> ids = [];
+
+    void addOne(dynamic v) {
+      int? id = toIntOrNull(v);
+      if (id != null && id > 0 && !ids.contains(id)) {
+        ids.add(id);
+      }
     }
 
     if (raw is List) {
-      for (final e in raw) {
-        if (e is Map) {
-          add(e['id']);
+      for (var item in raw) {
+        if (item is Map && item['id'] != null) {
+          addOne(item['id']);
         } else {
-          add(e);
+          addOne(item);
         }
       }
-    } else {
-      add(raw);
+    } else if (raw != null) {
+      addOne(raw);
     }
     return ids;
   }
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
-    final ids = _parseIds(
+    List<int> ids = parseIds(
       json['category_ids'] ?? json['categoryIds'] ?? json['categories'],
     );
-    final singleId = _toIntOrNull(
-      json['category_id'] ?? json['categoryId'],
-    );
-    if (singleId != null && !ids.contains(singleId)) ids.add(singleId);
 
-    String name = json['categoryName']?.toString() ??
-        json['category_name']?.toString() ??
+    int? singleId = toIntOrNull(json['category_id'] ?? json['categoryId']);
+    if (singleId != null && !ids.contains(singleId)) {
+      ids.add(singleId);
+    }
+
+    String catName = json['category_name']?.toString() ??
+        json['categoryName']?.toString() ??
         '';
-    final rawCats = json['categories'];
-    if (rawCats is List) {
-      for (final e in rawCats) {
-        if (e is Map) {
-          final n = e['name']?.toString() ?? '';
-          if (name.isEmpty && n.isNotEmpty) name = n;
+
+    if (json['categories'] is List && catName.isEmpty) {
+      for (var item in json['categories']) {
+        if (item is Map && item['name'] != null) {
+          catName = item['name'].toString();
+          break;
         }
       }
     }
 
     return PostModel(
-      id: _toInt(json['id'], 0),
+      id: toInt(json['id'], 0),
       title: json['title']?.toString() ?? 'Tanpa judul',
       content: json['content']?.toString() ?? '',
-      imageUrl: json['imageUrl']?.toString() ?? json['image']?.toString(),
+      imageUrl: json['image']?.toString() ?? json['imageUrl']?.toString(),
       categoryId: ids.isEmpty ? null : ids.first,
       categoryIds: ids,
-      categoryName: name,
-      authorId: _toIntOrNull(json['author_id'] ?? json['authorId']),
-      authorName: json['authorName']?.toString() ??
+      categoryName: catName,
+      authorId: toIntOrNull(json['author_id'] ?? json['authorId']),
+      authorName: json['author']?.toString() ??
           json['author_name']?.toString() ??
-          json['author']?.toString() ??
+          json['authorName']?.toString() ??
           'Anonymous',
       createdAt:
-          json['createdAt']?.toString() ?? json['created_at']?.toString(),
+          json['created_at']?.toString() ?? json['createdAt']?.toString(),
       updatedAt:
-          json['updatedAt']?.toString() ?? json['updated_at']?.toString(),
+          json['updated_at']?.toString() ?? json['updatedAt']?.toString(),
     );
   }
 }

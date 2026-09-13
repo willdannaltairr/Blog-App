@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'common.dart';
 
-// Chip kategori: aktif = putih, nonaktif = kartu gelap berborder.
 class CategoryChip extends StatelessWidget {
   final String label;
   final bool active;
@@ -32,7 +31,6 @@ class CategoryChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (active) ...[
-              // Buletan di kiri tulisan saat chip terpilih (putih).
               Container(
                 width: 8,
                 height: 8,
@@ -58,9 +56,6 @@ class CategoryChip extends StatelessWidget {
   }
 }
 
-// Dialog tambah kategori (hanya tambah, tanpa edit/hapus).
-// Controller milik dialog sendiri dan dibuang di dispose() dialog,
-// jadi aman dari crash framework saat dialog ditutup.
 class CategoryFormDialog extends StatefulWidget {
   const CategoryFormDialog({super.key});
 

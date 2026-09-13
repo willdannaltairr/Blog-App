@@ -4,120 +4,131 @@ import '../models/category_model.dart';
 import '../models/post_model.dart';
 import 'auth_service.dart';
 
-// Fetch sederhana pakai package http ^1.6.0.
-// Pola dasar: Uri.parse -> http.get/post/put/delete -> jsonDecode.
 class ApiService {
-  // Header JSON dasar + token bila ada.
   static Map<String, String> _headers() {
-    final Map<String, String> h = {
+    Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
-    final String? t = AuthService.token;
-    if (t != null && t.isNotEmpty && !t.startsWith('legacy-')) {
-      h['Authorization'] = 'Bearer $t';
+    String? token = AuthService.token;
+    if (token != null && token.isNotEmpty && !token.startsWith('legacy-')) {
+      headers['Authorization'] = 'Bearer $token';
     }
-    return h;
+    return headers;
   }
 
-  // Ubah body string jadi Map agar aman dibaca.
   static Map<String, dynamic> _decode(String body) {
     try {
-      final v = jsonDecode(body);
-      if (v is Map<String, dynamic>) return v;
-      return {'data': v};
+      var json = jsonDecode(body);
+      if (json is Map<String, dynamic>) return json;
+      return {'data': json};
     } catch (_) {
       return {};
     }
   }
 
-  static String _msg(Map<String, dynamic> data, String fallback) {
-    final errs = data['errors'];
-    if (errs is List && errs.isNotEmpty) {
-      return errs.map((e) => e.toString()).join(', ');
+  static String _errorMsg(Map<String, dynamic> json, String fallback) {
+    var errors = json['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      return errors.map((e) => e.toString()).join(', ');
     }
-    return data['message']?.toString() ?? fallback;
+    return json['message']?.toString() ?? fallback;
   }
 
-  // ---------- Kategori ----------
-
   static Future<List<CategoryModel>> getCategories() async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/categories');
-    final response = await http.get(url, headers: _headers());
-    if (response.statusCode == 200) {
-      final raw = _decode(response.body)['data'];
-      if (raw is List) {
-        final List<CategoryModel> list = [];
-        for (final e in raw) {
-          if (e is Map) {
-            list.add(CategoryModel.fromJson(Map<String, dynamic>.from(e)));
-          }
-        }
-        return list;
-      }
-      return [];
+    String base = await AuthService.getBaseUrl();
+    var res = await http.get(
+      Uri.parse('$base/api/categories'),
+      headers: _headers(),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Gagal memuat kategori');
     }
-    throw Exception('Gagal memuat kategori');
+
+    var list = _decode(res.body)['data'];
+    if (list is! List) return [];
+
+    List<CategoryModel> result = [];
+    for (var item in list) {
+      if (item is Map) {
+        result.add(CategoryModel.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return result;
   }
 
   static Future<CategoryModel> createCategory(String name) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/categories');
-    final response = await http.post(
-      url,
+    String base = await AuthService.getBaseUrl();
+    var res = await http.post(
+      Uri.parse('$base/api/categories'),
       headers: _headers(),
       body: jsonEncode({'name': name.trim()}),
     );
-    final Map<String, dynamic> data = _decode(response.body);
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      final cj = data['data'];
-      if (cj is Map) {
-        return CategoryModel.fromJson(Map<String, dynamic>.from(cj));
+    var json = _decode(res.body);
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      var raw = json['data'];
+      if (raw is Map) {
+        return CategoryModel.fromJson(Map<String, dynamic>.from(raw));
       }
-      final List<CategoryModel> all = await getCategories();
-      for (final c in all) {
+      // kalau server tidak balikin data, cari dari list
+      List<CategoryModel> all = await getCategories();
+      for (var c in all) {
         if (c.name.toLowerCase() == name.trim().toLowerCase()) return c;
       }
       return CategoryModel(id: 0, name: name.trim());
     }
-    throw Exception(_msg(data, 'Gagal membuat kategori'));
-  }
 
-  // ---------- Artikel ----------
+    throw Exception(_errorMsg(json, 'Gagal membuat kategori'));
+  }
 
   static Future<List<PostModel>> getPosts({
     String? search,
     int? categoryId,
   }) async {
-    final String base = await AuthService.getBaseUrl();
-    final Map<String, String> qp = {};
+    String base = await AuthService.getBaseUrl();
+
+    Map<String, String> query = {};
     if (search != null && search.trim().isNotEmpty) {
-      qp['search'] = search.trim();
+      query['search'] = search.trim();
     }
     if (categoryId != null && categoryId > 0) {
-      qp['category_id'] = categoryId.toString();
+      query['category_id'] = categoryId.toString();
     }
-    final Uri url =
-        Uri.parse('$base/api/blogs').replace(queryParameters: qp.isEmpty ? null : qp);
-    final response = await http.get(url, headers: _headers());
-    if (response.statusCode != 200) throw Exception('Gagal memuat artikel');
-    final raw = _decode(response.body)['data'];
-    if (raw is! List) return [];
-    final List<PostModel> list = [];
-    for (final e in raw) {
-      if (e is Map) list.add(PostModel.fromJson(Map<String, dynamic>.from(e)));
+
+    var url = Uri.parse('$base/api/blogs')
+        .replace(queryParameters: query.isEmpty ? null : query);
+    var res = await http.get(url, headers: _headers());
+
+    if (res.statusCode != 200) {
+      throw Exception('Gagal memuat artikel');
     }
-    return list;
+
+    var list = _decode(res.body)['data'];
+    if (list is! List) return [];
+
+    List<PostModel> result = [];
+    for (var item in list) {
+      if (item is Map) {
+        result.add(PostModel.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return result;
   }
 
   static Future<PostModel> getPostById(int id) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/blogs/$id');
-    final response = await http.get(url, headers: _headers());
-    if (response.statusCode == 200) {
-      final bj = _decode(response.body)['data'];
-      if (bj is Map) return PostModel.fromJson(Map<String, dynamic>.from(bj));
+    String base = await AuthService.getBaseUrl();
+    var res = await http.get(
+      Uri.parse('$base/api/blogs/$id'),
+      headers: _headers(),
+    );
+
+    if (res.statusCode == 200) {
+      var raw = _decode(res.body)['data'];
+      if (raw is Map) {
+        return PostModel.fromJson(Map<String, dynamic>.from(raw));
+      }
     }
     throw Exception('Artikel tidak ditemukan');
   }
@@ -129,12 +140,15 @@ class ApiService {
     String? image,
     required List<int> categoryIds,
   }) async {
-    if (categoryIds.isEmpty) throw Exception('Pilih minimal 1 kategori');
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/blogs');
-    final String? img = (image ?? '').trim().isEmpty ? null : image!.trim();
-    final response = await http.post(
-      url,
+    if (categoryIds.isEmpty) {
+      throw Exception('Pilih minimal 1 kategori');
+    }
+
+    String base = await AuthService.getBaseUrl();
+    String? img = (image ?? '').trim().isEmpty ? null : image!.trim();
+
+    var res = await http.post(
+      Uri.parse('$base/api/blogs'),
       headers: _headers(),
       body: jsonEncode({
         'title': title.trim(),
@@ -145,8 +159,9 @@ class ApiService {
         'category_id': categoryIds.first,
       }),
     );
-    if (response.statusCode == 201 || response.statusCode == 200) return;
-    throw Exception(_msg(_decode(response.body), 'Gagal membuat artikel'));
+
+    if (res.statusCode == 200 || res.statusCode == 201) return;
+    throw Exception(_errorMsg(_decode(res.body), 'Gagal membuat artikel'));
   }
 
   static Future<void> updatePost({
@@ -157,9 +172,9 @@ class ApiService {
     String? image,
     List<int>? categoryIds,
   }) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/blogs/$id');
-    final Map<String, dynamic> payload = {};
+    String base = await AuthService.getBaseUrl();
+    Map<String, dynamic> payload = {};
+
     if (title != null) payload['title'] = title.trim();
     if (content != null) payload['content'] = content.trim();
     if (author != null) payload['author'] = author.trim();
@@ -167,21 +182,31 @@ class ApiService {
       payload['image'] = image.trim().isEmpty ? null : image.trim();
     }
     if (categoryIds != null) {
-      if (categoryIds.isEmpty) throw Exception('Pilih minimal 1 kategori');
+      if (categoryIds.isEmpty) {
+        throw Exception('Pilih minimal 1 kategori');
+      }
       payload['category_ids'] = categoryIds;
       payload['category_id'] = categoryIds.first;
     }
-    final response =
-        await http.put(url, headers: _headers(), body: jsonEncode(payload));
-    if (response.statusCode == 200) return;
-    throw Exception(_msg(_decode(response.body), 'Gagal mengupdate artikel'));
+
+    var res = await http.put(
+      Uri.parse('$base/api/blogs/$id'),
+      headers: _headers(),
+      body: jsonEncode(payload),
+    );
+
+    if (res.statusCode == 200) return;
+    throw Exception(_errorMsg(_decode(res.body), 'Gagal mengupdate artikel'));
   }
 
   static Future<void> deletePost(int id) async {
-    final String base = await AuthService.getBaseUrl();
-    final Uri url = Uri.parse('$base/api/blogs/$id');
-    final response = await http.delete(url, headers: _headers());
-    if (response.statusCode == 200) return;
-    throw Exception(_msg(_decode(response.body), 'Gagal menghapus artikel'));
+    String base = await AuthService.getBaseUrl();
+    var res = await http.delete(
+      Uri.parse('$base/api/blogs/$id'),
+      headers: _headers(),
+    );
+
+    if (res.statusCode == 200) return;
+    throw Exception(_errorMsg(_decode(res.body), 'Gagal menghapus artikel'));
   }
 }

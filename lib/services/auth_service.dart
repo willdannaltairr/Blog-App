@@ -5,9 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
-// Menyimpan token JWT + data user, dan memanggil endpoint auth.
-// Coba endpoint baru /api/auth/* dulu, fallback ke endpoint lama
-// (/api/users & /api/login) supaya tetap jalan walau backend belum diupdate.
 class AuthService {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'cached_user_session';
@@ -15,7 +12,7 @@ class AuthService {
 
   static String? _token;
   static UserModel? _currentUser;
-  static String _activeBaseUrl = '';
+  static String _baseUrl = '';
 
   static String? get token => _token;
   static UserModel? get currentUser => _currentUser;
@@ -30,80 +27,58 @@ class AuthService {
   }
 
   static Future<String> getBaseUrl() async {
-    if (_activeBaseUrl.isNotEmpty) return _activeBaseUrl;
+    if (_baseUrl.isNotEmpty) return _baseUrl;
     final prefs = await SharedPreferences.getInstance();
-    _activeBaseUrl = prefs.getString(_baseUrlKey) ?? defaultBaseUrl;
-    return _activeBaseUrl;
+    _baseUrl = prefs.getString(_baseUrlKey) ?? defaultBaseUrl;
+    return _baseUrl;
   }
 
   static Future<void> setBaseUrl(String url) async {
-    var next = url.trim();
-    if (next.endsWith('/')) next = next.substring(0, next.length - 1);
-    _activeBaseUrl = next;
+    String next = url.trim();
+    if (next.endsWith('/')) {
+      next = next.substring(0, next.length - 1);
+    }
+    _baseUrl = next;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_baseUrlKey, next);
   }
 
   static Map<String, String> _headers({bool withAuth = false}) {
-    final h = <String, String>{
+    Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
     if (withAuth && _token != null && _token!.isNotEmpty) {
-      h['Authorization'] = 'Bearer $_token';
+      headers['Authorization'] = 'Bearer $_token';
     }
-    return h;
+    return headers;
   }
 
   static Map<String, dynamic> _decode(String body) {
     try {
-      final v = jsonDecode(body);
-      if (v is Map<String, dynamic>) return v;
-      return {'data': v};
+      var json = jsonDecode(body);
+      if (json is Map<String, dynamic>) return json;
+      return {'data': json};
     } catch (_) {
       return {};
     }
   }
 
-  static UserModel? _parseUser(Map<String, dynamic> data) {
-    final raw = data['user'] ?? data['data'];
+  static UserModel? _parseUser(Map<String, dynamic> json) {
+    var raw = json['user'] ?? json['data'];
     if (raw is Map) {
       return UserModel.fromJson(Map<String, dynamic>.from(raw));
     }
     return null;
   }
 
-  static String? _parseToken(Map<String, dynamic> data) {
-    final t = data['token'];
+  static String? _parseToken(Map<String, dynamic> json) {
+    var t = json['token'];
     if (t is String && t.isNotEmpty) return t;
     return null;
   }
 
-  // Dipanggil sekali dari main() sebelum runApp.
-  static Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_tokenKey);
-    final raw = prefs.getString(_userKey);
-    if (raw != null) {
-      try {
-        _currentUser =
-            UserModel.fromJson(Map<String, dynamic>.from(jsonDecode(raw)));
-      } catch (_) {
-        _currentUser = null;
-      }
-    }
-    // Validasi token ke server; kalau basi, hapus agar splash ke Login.
-    if (_token != null && _token!.isNotEmpty) {
-      try {
-        final me = await fetchMe();
-        await _persist(me, _token!);
-      } catch (_) {
-        await logout();
-      }
-    }
-  }
-
-  static Future<void> _persist(UserModel user, String token) async {
+  static Future<void> _save(UserModel user, String token) async {
     _currentUser = user;
     _token = token;
     final prefs = await SharedPreferences.getInstance();
@@ -111,61 +86,79 @@ class AuthService {
     await prefs.setString(_userKey, jsonEncode(user.toJson()));
   }
 
-  static Future<UserModel> login(String email, String password) async {
-    final base = await getBaseUrl();
-    final body =
-        jsonEncode({'email': email.trim(), 'password': password});
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString(_tokenKey);
 
-    // 1) Endpoint baru.
+    String? savedUser = prefs.getString(_userKey);
+    if (savedUser != null) {
+      try {
+        _currentUser = UserModel.fromJson(jsonDecode(savedUser));
+      } catch (_) {
+        _currentUser = null;
+      }
+    }
+
+    if (_token != null && _token!.isNotEmpty) {
+      try {
+        UserModel me = await fetchMe();
+        await _save(me, _token!);
+      } catch (_) {
+        await logout();
+      }
+    }
+  }
+
+  static Future<UserModel> login(String email, String password) async {
+    String base = await getBaseUrl();
+    String body = jsonEncode({'email': email.trim(), 'password': password});
+
+    // Coba API baru dulu
     try {
-      final res = await http.post(
+      var res = await http.post(
         Uri.parse('$base/api/auth/login'),
         headers: _headers(),
         body: body,
       );
-      final data = _decode(res.body);
+      var json = _decode(res.body);
+
       if (res.statusCode >= 200 && res.statusCode < 300) {
-        final user = _parseUser(data);
-        final token = _parseToken(data);
+        var user = _parseUser(json);
+        var token = _parseToken(json);
         if (user != null && token != null) {
-          await _persist(user, token);
+          await _save(user, token);
           return user;
         }
       }
-      // Kalau 404 (backend lama tanpa rute ini), lanjut ke fallback.
+
+      // Kalau bukan 404 berarti backend memang menolak, langsung error
       if (res.statusCode != 404) {
-        throw Exception(data['message']?.toString() ??
-            'Login gagal. Periksa email & password.');
+        throw Exception(
+            json['message'] ?? 'Login gagal. Periksa email & password.');
       }
     } catch (e) {
-      if (e is Exception && !e.toString().contains('Failed host lookup') &&
-          !e.toString().contains('Connection refused') &&
-          !e.toString().contains('Login gagal') &&
-          !e.toString().contains('Email atau password')) {
-        // Error jaringan/parsing pada endpoint baru -> coba fallback.
-      } else if (e is Exception &&
-          (e.toString().contains('Email atau password') ||
-              e.toString().contains('Login gagal'))) {
-        rethrow;
-      }
+      String msg = e.toString();
+      if (msg.contains('Login gagal')) rethrow;
+      // selain itu lanjut coba API lama di bawah
     }
 
-    // 2) Fallback endpoint lama.
-    final res = await http.post(
+    // API lama
+    var res = await http.post(
       Uri.parse('$base/api/login'),
       headers: _headers(),
       body: body,
     );
-    final data = _decode(res.body);
+    var json = _decode(res.body);
+
     if (res.statusCode >= 200 && res.statusCode < 300) {
-      final user = _parseUser(data);
+      var user = _parseUser(json);
       if (user == null) throw Exception('Respons login tidak valid.');
-      final token = _parseToken(data) ?? 'legacy-${user.id}';
-      await _persist(user, token);
+      String token = _parseToken(json) ?? 'legacy-${user.id}';
+      await _save(user, token);
       return user;
     }
-    throw Exception(data['message']?.toString() ??
-        'Login gagal. Periksa email & password.');
+
+    throw Exception(json['message'] ?? 'Login gagal. Periksa email & password.');
   }
 
   static Future<UserModel> register({
@@ -173,148 +166,128 @@ class AuthService {
     required String email,
     required String password,
   }) async {
-    final base = await getBaseUrl();
-    final body = jsonEncode(
-        {'name': name.trim(), 'email': email.trim(), 'password': password});
+    String base = await getBaseUrl();
+    String body = jsonEncode({
+      'name': name.trim(),
+      'email': email.trim(),
+      'password': password,
+    });
 
     try {
-      final res = await http.post(
+      var res = await http.post(
         Uri.parse('$base/api/auth/register'),
         headers: _headers(),
         body: body,
       );
-      final data = _decode(res.body);
-      if (res.statusCode == 201 || res.statusCode == 200) {
-        final user = _parseUser(data);
-        final token = _parseToken(data);
+      var json = _decode(res.body);
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        var user = _parseUser(json);
+        var token = _parseToken(json);
         if (user != null && token != null) {
-          await _persist(user, token);
+          await _save(user, token);
           return user;
         }
-        // Backend baru tapi tanpa token? anggap sukses, auto-login.
         return await login(email.trim(), password);
       }
+
       if (res.statusCode != 404) {
-        final errs = data['errors'];
-        if (errs is List && errs.isNotEmpty) {
-          throw Exception(errs.first.toString());
+        var errors = json['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          throw Exception(errors.first.toString());
         }
-        throw Exception(data['message']?.toString() ?? 'Registrasi gagal.');
+        throw Exception(json['message'] ?? 'Registrasi gagal.');
       }
     } catch (e) {
-      if (e is Exception &&
-          (e.toString().contains('Registrasi gagal') ||
-              e.toString().contains('Email sudah terdaftar') ||
-              e.toString().contains('Validasi gagal'))) {
+      String msg = e.toString();
+      if (msg.contains('Registrasi gagal') || msg.contains('sudah terdaftar')) {
         rethrow;
       }
     }
 
-    // Fallback: backend lama hanya mengembalikan message.
-    final res = await http.post(
+    var res = await http.post(
       Uri.parse('$base/api/users'),
       headers: _headers(),
       body: body,
     );
-    final data = _decode(res.body);
-    if (res.statusCode == 201 || res.statusCode == 200) {
+    var json = _decode(res.body);
+
+    if (res.statusCode == 200 || res.statusCode == 201) {
       return login(email.trim(), password);
     }
-    final errs = data['errors'];
-    if (errs is List && errs.isNotEmpty) {
-      throw Exception(errs.first.toString());
+
+    var errors = json['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      throw Exception(errors.first.toString());
     }
-    throw Exception(data['message']?.toString() ?? 'Registrasi gagal.');
+    throw Exception(json['message'] ?? 'Registrasi gagal.');
   }
 
   static Future<UserModel> fetchMe() async {
-    final base = await getBaseUrl();
-    final res = await http.get(
+    String base = await getBaseUrl();
+    var res = await http.get(
       Uri.parse('$base/api/auth/me'),
       headers: _headers(withAuth: true),
     );
-    final data = _decode(res.body);
+    var json = _decode(res.body);
+
     if (res.statusCode == 200) {
-      final user = _parseUser(data);
+      var user = _parseUser(json);
       if (user != null) return user;
     }
-    throw Exception(data['message']?.toString() ?? 'Sesi berakhir.');
+    throw Exception(json['message'] ?? 'Sesi berakhir.');
   }
 
-  // Edit profil ke server (PUT /api/auth/me). Name & email tersimpan
-  // permanen di DB; username hanya lokal (tidak ada kolom di DB).
   static Future<UserModel> updateProfile({
     String? name,
     String? username,
     String? email,
   }) async {
-    final cur = _currentUser;
-    if (cur == null) throw Exception('Sesi berakhir. Login ulang.');
-    final base = await getBaseUrl();
-    final payload = <String, dynamic>{};
+    if (_currentUser == null) {
+      throw Exception('Sesi berakhir. Login ulang.');
+    }
+
+    String base = await getBaseUrl();
+    Map<String, dynamic> payload = {};
     if (name != null) payload['name'] = name.trim();
     if (email != null) payload['email'] = email.trim();
-    final res = await http.put(
+
+    var res = await http.put(
       Uri.parse('$base/api/auth/me'),
       headers: _headers(withAuth: true),
       body: jsonEncode(payload),
     );
-    final data = _decode(res.body);
+    var json = _decode(res.body);
+
     if (res.statusCode == 200) {
-      final user = _parseUser(data);
+      var user = _parseUser(json);
       if (user == null) throw Exception('Respons server tidak valid.');
-      final token = _parseToken(data) ?? _token ?? '';
-      var nextUsername = (username ?? cur.username).trim();
-      if (nextUsername.isEmpty) nextUsername = cur.username;
-      final merged = UserModel(
+
+      String token = _parseToken(json) ?? _token ?? '';
+      String uname = (username ?? _currentUser!.username).trim();
+      if (uname.isEmpty) uname = _currentUser!.username;
+
+      UserModel updated = UserModel(
         id: user.id,
         name: user.name,
         email: user.email,
-        username: nextUsername,
-        avatarUrl: cur.avatarUrl,
-        createdAt: cur.createdAt,
+        username: uname,
+        avatarUrl: _currentUser!.avatarUrl,
+        createdAt: _currentUser!.createdAt,
       );
-      await _persist(merged, token);
-      return merged;
+      await _save(updated, token);
+      return updated;
     }
-    if (res.statusCode == 401) {
-      throw Exception(data['message']?.toString() ?? 'Sesi berakhir.');
-    }
-    final errs = data['errors'];
-    if (errs is List && errs.isNotEmpty) {
-      throw Exception(errs.map((e) => e.toString()).join(', '));
-    }
-    throw Exception(data['message']?.toString() ?? 'Gagal mengupdate profil');
-  }
 
-  // Edit profil lokal (backend belum ada PUT /users/me).
-  static Future<void> updateLocalProfile({
-    String? name,
-    String? username,
-    String? email,
-    String? avatarUrl,
-  }) async {
-    final cur = _currentUser;
-    if (cur == null) return;
-    final nextName =
-        (name ?? cur.name).trim().isEmpty ? cur.name : (name ?? cur.name).trim();
-    final nextUsername = (username ?? cur.username).trim().isEmpty
-        ? cur.username
-        : (username ?? cur.username).trim();
-    final nextEmail = (email ?? cur.email).trim().isEmpty
-        ? cur.email
-        : (email ?? cur.email).trim();
-    final next = UserModel(
-      id: cur.id,
-      name: nextName,
-      email: nextEmail,
-      username: nextUsername,
-      avatarUrl: avatarUrl ?? cur.avatarUrl,
-      createdAt: cur.createdAt,
-    );
-    _currentUser = next;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userKey, jsonEncode(next.toJson()));
+    if (res.statusCode == 401) {
+      throw Exception(json['message'] ?? 'Sesi berakhir.');
+    }
+
+    var errors = json['errors'];
+    if (errors is List && errors.isNotEmpty) {
+      throw Exception(errors.map((e) => e.toString()).join(', '));
+    }
+    throw Exception(json['message'] ?? 'Gagal mengupdate profil');
   }
 
   static Future<void> logout() async {

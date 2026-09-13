@@ -9,7 +9,6 @@ void main() async {
   runApp(const BLogApp());
 }
 
-// Log: tema hitam-putih (#000000) + auth + bottom nav pill.
 class BLogApp extends StatelessWidget {
   const BLogApp({super.key});
 

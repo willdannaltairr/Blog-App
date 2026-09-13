@@ -1,4 +1,3 @@
-// Model user login. Password tidak pernah disimpan di sisi klien.
 class UserModel {
   final int id;
   final String name;
@@ -19,16 +18,24 @@ class UserModel {
             : username;
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    final email = json['email']?.toString() ?? '';
+    String email = json['email']?.toString() ?? '';
+    String uname = json['username']?.toString() ?? '';
+    if (uname.isEmpty && email.contains('@')) {
+      uname = email.split('@').first;
+    }
+
+    int id = 0;
+    if (json['id'] is int) {
+      id = json['id'];
+    } else {
+      id = int.tryParse(json['id']?.toString() ?? '') ?? 0;
+    }
+
     return UserModel(
-      id: json['id'] is int
-          ? json['id'] as int
-          : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      id: id,
       name: json['name']?.toString() ?? '',
-      username: json['username']?.toString().isNotEmpty == true
-          ? json['username'].toString()
-          : email.split('@').first,
       email: email,
+      username: uname,
       avatarUrl: json['avatar_url']?.toString() ??
           json['avatarUrl']?.toString() ??
           json['avatar']?.toString(),
@@ -37,12 +44,14 @@ class UserModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'username': username,
-        'email': email,
-        'avatar_url': avatarUrl,
-        'created_at': createdAt,
-      };
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'username': username,
+      'email': email,
+      'avatar_url': avatarUrl,
+      'created_at': createdAt,
+    };
+  }
 }

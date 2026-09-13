@@ -8,8 +8,6 @@ import '../widgets/category_chip.dart';
 import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 
-// Tambah & edit artikel: judul, konten, pilih banyak kategori,
-// gambar opsional.
 class ArtikelFormScreen extends StatefulWidget {
   final PostModel? postToEdit;
   const ArtikelFormScreen({super.key, this.postToEdit});
@@ -37,12 +35,10 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     _title = TextEditingController(text: b?.title ?? '');
     _content = TextEditingController(text: b?.content ?? '');
     _imageUrl = TextEditingController(text: b?.imageUrl ?? '');
-    // Author menyesuaikan profil login (materi: String + var).
     final u = AuthService.currentUser;
-    var profileName = u?.name.trim() ?? '';
+    String profileName = u?.name.trim() ?? '';
     if (profileName.isEmpty) profileName = u?.username.trim() ?? '';
     _author = TextEditingController(text: b?.authorName ?? profileName);
-    // Pilihan awal: kategori lama saat edit (buat baru: kosong).
     _selected.addAll(b?.allCategoryIds ?? const []);
     _loadCats();
   }
@@ -83,7 +79,6 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     });
   }
 
-  // Tambah kategori langsung dari form artikel, otomatis terpilih.
   Future<void> _addCategoryInline() async {
     final name = await showDialog<String>(
       context: context,
@@ -117,8 +112,6 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     }
   }
 
-  // Pilih gambar dari galeri (package image_picker dari pub.dev).
-  // Hasil path disimpan ke _imageUrl agar ikut terkirim ke backend.
   Future<void> _pickImage() async {
     try {
       final ImagePicker picker = ImagePicker();
@@ -152,8 +145,6 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
     });
     try {
       final bool isEdit = widget.postToEdit != null;
-      // Gambar dikirim apa adanya (URL atau path lokal galeri, maks 255).
-      // File galeri tetap di HP; tulisannya tersimpan di DB blogs.image.
       final String rawImg = _imageUrl.text.trim();
       if (rawImg.length > 255) {
         setState(() {
@@ -165,10 +156,9 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
       }
       final String? image = rawImg.isEmpty ? null : rawImg;
       final List<int> ids = _selected.toList();
-      // Buat baru: author selalu menyesuaikan profil yang login.
-      var profileName = user.name.trim();
+      String profileName = user.name.trim();
       if (profileName.isEmpty) profileName = user.username.trim();
-      var author = _author.text.trim();
+      String author = _author.text.trim();
       if (author.isEmpty) author = profileName;
       if (!isEdit) {
         await ApiService.createPost(
@@ -343,7 +333,6 @@ class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
   }
 }
 
-// Pilihan kategori berupa tombol/chip yang bisa dipilih banyak.
 class _CategoryMultiSelect extends StatelessWidget {
   final bool loading;
   final List<CategoryModel> categories;
@@ -406,7 +395,6 @@ class _CategoryMultiSelect extends StatelessWidget {
   }
 }
 
-// Preview gambar: URL network maupun file lokal galeri langsung tampil.
 class PostImagePreview extends StatelessWidget {
   final String url;
   const PostImagePreview({super.key, required this.url});

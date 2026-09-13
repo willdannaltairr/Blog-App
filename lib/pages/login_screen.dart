@@ -16,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
   final _password = TextEditingController();
-  bool _obscure = true;
+  bool _sembunyi = true;
   bool _loading = false;
   String? _error;
 
@@ -27,12 +27,14 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() {
       _loading = true;
       _error = null;
     });
+
     try {
       await AuthService.login(_email.text, _password.text);
       if (!mounted) return;
@@ -41,9 +43,13 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const MainShell()),
       );
     } catch (e) {
-      setState(() => _error = e.toString().replaceFirst('Exception: ', ''));
+      setState(() {
+        _error = e.toString().replaceFirst('Exception: ', '');
+      });
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -58,15 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 10),
-              const Text(
-                'Login',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.accentFg,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              const AuthTitle('Login'),
               const SizedBox(height: 28),
               if (_error != null) ...[
                 FormErrorBanner(message: _error!, light: true),
@@ -86,75 +84,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _password,
                 label: 'Password',
                 hint: 'Enter your password',
-                obscure: _obscure,
+                obscure: _sembunyi,
                 validator: validatePassword,
                 suffix: IconButton(
                   icon: Icon(
-                    _obscure
+                    _sembunyi
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     color: AppColors.accentFg,
                   ),
-                  onPressed: () => setState(() => _obscure = !_obscure),
+                  onPressed: () {
+                    setState(() => _sembunyi = !_sembunyi);
+                  },
                 ),
               ),
               const SizedBox(height: 20),
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.background,
-                    foregroundColor: AppColors.accent,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.accent,
-                          ),
-                        )
-                      : const Text(
-                          'Login',
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                ),
+              AuthPrimaryButton(
+                label: 'Login',
+                loading: _loading,
+                onPressed: _login,
               ),
               const SizedBox(height: 22),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Don\'t have any account? ',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    ),
-                    child: const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: AppColors.accentFg,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
+              AuthSwitchRow(
+                prefix: "Don't have any account? ",
+                action: 'Sign Up',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const RegisterScreen()),
+                  );
+                },
               ),
             ],
           ),

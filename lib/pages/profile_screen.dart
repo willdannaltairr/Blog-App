@@ -8,7 +8,6 @@ import 'artikel_detail_screen.dart';
 import 'login_screen.dart';
 import 'edit_profile_screen.dart';
 
-// Profil: foto kiri + nama di samping, lalu artikel milik sendiri.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -98,9 +97,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
-    var uname = user?.name.trim() ?? '';
-    if (uname.isEmpty) uname = 'K';
-    final String initial = uname[0].toUpperCase();
+    String nama = user?.name.trim() ?? '';
+    if (nama.isEmpty) nama = 'K';
+    String initial = nama[0].toUpperCase();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -123,7 +122,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
-                  // Card button Keluar: ikon + tulisan.
                   GestureDetector(
                     onTap: _logout,
                     child: Container(

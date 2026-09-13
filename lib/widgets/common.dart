@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// Pindahan dari utils/colors.dart — satu-satunya sumber warna.
 class AppColors {
   static const Color background = Color(0xFF000000);
   static const Color pattern = Color(0xFF101010);
@@ -18,7 +17,6 @@ class AppColors {
   static const Color placeholder = Color(0xFF2A2A2A);
 }
 
-// Pindahan dari utils/constants.dart.
 class AppConstants {
   static const String appName = 'Log';
   static const String logoPath = 'assets/images/logo.png';
@@ -28,46 +26,53 @@ class AppConstants {
   static const double navRadius = 22;
   static const int splashDelayMs = 1800;
   static const int searchDebounceMs = 400;
+
+  static const double authHeaderRatio = 0.38;
+  static const double authHeaderMin = 190;
+  static const double authHeaderMax = 270;
+  static const double authCardRadius = 36;
+  static const double authCardOverlap = 28;
+  static const double authLogoSize = 112;
 }
 
-// Pindahan dari utils/validators.dart.
-String? validateEmail(String? v) {
-  if (v == null || v.trim().isEmpty) return 'Email wajib diisi';
-  final t = v.trim();
-  if (!t.contains('@') || !t.contains('.')) return 'Format email tidak valid';
+String? validateEmail(String? value) {
+  if (value == null || value.trim().isEmpty) return 'Email wajib diisi';
+  String email = value.trim();
+  if (!email.contains('@') || !email.contains('.')) {
+    return 'Format email tidak valid';
+  }
   return null;
 }
 
-String? validatePassword(String? v) {
-  if (v == null || v.isEmpty) return 'Password wajib diisi';
-  if (v.length < 6) return 'Password minimal 6 karakter';
+String? validatePassword(String? value) {
+  if (value == null || value.isEmpty) return 'Password wajib diisi';
+  if (value.length < 6) return 'Password minimal 6 karakter';
   return null;
 }
 
-String? validateRequired(String? v, String label) {
-  if (v == null || v.trim().isEmpty) return '$label wajib diisi';
+String? validateRequired(String? value, String label) {
+  if (value == null || value.trim().isEmpty) return '$label wajib diisi';
   return null;
 }
 
-String timeAgo(String? isoString) {
-  if (isoString == null || isoString.isEmpty) return 'baru saja';
+String timeAgo(String? iso) {
+  if (iso == null || iso.isEmpty) return 'baru saja';
   try {
-    final dt = DateTime.parse(isoString).toLocal();
-    final diff = DateTime.now().difference(dt);
+    DateTime date = DateTime.parse(iso).toLocal();
+    Duration diff = DateTime.now().difference(date);
     if (diff.inSeconds < 60) return 'baru saja';
     if (diff.inMinutes < 60) return '${diff.inMinutes} mnt lalu';
     if (diff.inHours < 24) return '${diff.inHours} jam lalu';
     if (diff.inDays < 7) return '${diff.inDays} hari lalu';
-    return '${dt.day}/${dt.month}/${dt.year}';
+    return '${date.day}/${date.month}/${date.year}';
   } catch (_) {
     return 'baru saja';
   }
 }
 
-// Pindahan dari utils/theme.dart.
 class AppTheme {
   static ThemeData get dark {
-    final base = ThemeData(
+    ThemeData base = ThemeData(
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: const ColorScheme.dark(
@@ -106,7 +111,7 @@ class AppTheme {
       ),
     );
 
-    final text = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
+    var text = GoogleFonts.plusJakartaSansTextTheme(base.textTheme).copyWith(
       headlineLarge: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.w800, color: AppColors.textPrimary),
       headlineMedium: GoogleFonts.plusJakartaSans(
@@ -128,7 +133,8 @@ class AppTheme {
         fillColor: AppColors.inputFill,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        hintStyle:
+            const TextStyle(color: AppColors.textSecondary, fontSize: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppConstants.inputRadius),
           borderSide: const BorderSide(color: AppColors.surfaceBorder),
@@ -187,11 +193,14 @@ class AuthShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height;
-    final headerHeight = (height * 0.31).clamp(150.0, 230.0).toDouble();
-    const logoSize = 112.0;
-    // Ruang hitam di atas kartu putih; logo diratakan tengah di ruang itu.
-    final logoTop = ((headerHeight - 24 - logoSize) / 2).clamp(8.0, 120.0);
+    double height = MediaQuery.sizeOf(context).height;
+    double headerHeight = (height * AppConstants.authHeaderRatio)
+        .clamp(AppConstants.authHeaderMin, AppConstants.authHeaderMax)
+        .toDouble();
+
+    double logoTop =
+        ((headerHeight - AppConstants.authCardOverlap - AppConstants.authLogoSize) / 2)
+            .clamp(8.0, 140.0);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -210,18 +219,16 @@ class AuthShell extends StatelessWidget {
               left: 0,
               right: 0,
               child: Center(
-                // Logo tanpa kotak: gambarnya hitam-putih sehingga
-                // menyatu dengan background hitam.
                 child: Image.asset(
                   AppConstants.logoPath,
-                  width: logoSize,
-                  height: logoSize,
+                  width: AppConstants.authLogoSize,
+                  height: AppConstants.authLogoSize,
                   fit: BoxFit.contain,
                 ),
               ),
             ),
             Positioned(
-              top: headerHeight - 24,
+              top: headerHeight - AppConstants.authCardOverlap,
               left: 0,
               right: 0,
               bottom: 0,
@@ -258,9 +265,116 @@ class AuthCard extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.accent,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppConstants.authCardRadius),
+        ),
       ),
       child: SafeArea(child: child),
+    );
+  }
+}
+
+class AuthTitle extends StatelessWidget {
+  final String text;
+  const AuthTitle(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: AppColors.accentFg,
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class AuthPrimaryButton extends StatelessWidget {
+  final String label;
+  final bool loading;
+  final VoidCallback? onPressed;
+
+  const AuthPrimaryButton({
+    super.key,
+    required this.label,
+    required this.onPressed,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: ElevatedButton(
+        onPressed: loading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.background,
+          foregroundColor: AppColors.accent,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        child: loading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.accent,
+                ),
+              )
+            : Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class AuthSwitchRow extends StatelessWidget {
+  final String prefix;
+  final String action;
+  final VoidCallback onTap;
+
+  const AuthSwitchRow({
+    super.key,
+    required this.prefix,
+    required this.action,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          prefix,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+          ),
+        ),
+        GestureDetector(
+          onTap: onTap,
+          child: Text(
+            action,
+            style: const TextStyle(
+              color: AppColors.accentFg,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -268,30 +382,32 @@ class AuthCard extends StatelessWidget {
 class _AuthPatternPainter extends CustomPainter {
   final double height;
 
-  const _AuthPatternPainter(this.height);
+  _AuthPatternPainter(this.height);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final background = Paint()..color = AppColors.background;
-    final pattern = Paint()..color = AppColors.pattern;
-    final patternAlt = Paint()..color = AppColors.patternAlt;
-    final edge = Paint()
+    var bg = Paint()..color = AppColors.background;
+    var grey1 = Paint()..color = AppColors.pattern;
+    var grey2 = Paint()..color = AppColors.patternAlt;
+    var line = Paint()
       ..color = AppColors.surfaceBorder
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    canvas.drawRect(Offset.zero & size, background);
-    canvas.drawCircle(Offset(size.width * 0.12, -32), 96, pattern);
-    canvas.drawCircle(Offset(size.width * 0.82, 4), 112, patternAlt);
-    canvas.drawCircle(Offset(size.width * 0.58, height * 0.78), 72, pattern);
-    canvas.drawCircle(Offset(size.width * 0.08, height * 0.72), 58, patternAlt);
-    canvas.drawCircle(Offset(size.width * 0.92, height * 0.62), 48, pattern);
+    canvas.drawRect(Offset.zero & size, bg);
+    canvas.drawCircle(Offset(size.width * 0.12, -32), 96, grey1);
+    canvas.drawCircle(Offset(size.width * 0.82, 4), 112, grey2);
+    canvas.drawCircle(Offset(size.width * 0.58, height * 0.78), 72, grey1);
+    canvas.drawCircle(Offset(size.width * 0.08, height * 0.72), 58, grey2);
+    canvas.drawCircle(Offset(size.width * 0.92, height * 0.62), 48, grey1);
 
-    final first = RRect.fromRectAndRadius(
-      Offset(size.width * 0.68, height * 0.12) & const Size(72, 72),
-      const Radius.circular(18),
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Offset(size.width * 0.68, height * 0.12) & const Size(72, 72),
+        const Radius.circular(18),
+      ),
+      grey2,
     );
-    canvas.drawRRect(first, patternAlt);
 
     canvas.save();
     canvas.translate(size.width * 0.28, height * 0.42);
@@ -301,13 +417,13 @@ class _AuthPatternPainter extends CustomPainter {
         const Offset(-30, -30) & const Size(60, 60),
         const Radius.circular(14),
       ),
-      pattern,
+      grey1,
     );
     canvas.restore();
 
-    canvas.drawCircle(Offset(size.width * 0.42, height * 0.2), 24, edge);
-    canvas.drawCircle(Offset(size.width * 0.76, height * 0.48), 18, edge);
-    canvas.drawCircle(Offset(size.width * 0.18, height * 0.5), 14, edge);
+    canvas.drawCircle(Offset(size.width * 0.42, height * 0.2), 24, line);
+    canvas.drawCircle(Offset(size.width * 0.76, height * 0.48), 18, line);
+    canvas.drawCircle(Offset(size.width * 0.18, height * 0.5), 14, line);
   }
 
   @override
@@ -344,12 +460,18 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor = light ? AppColors.accentFg : AppColors.textPrimary;
-    final borderColor = light
-        ? AppColors.inputFillLight
-        : AppColors.surfaceBorder;
-    final focusedColor = light ? AppColors.accentFg : AppColors.accent;
-    final errorColor = light ? AppColors.background : AppColors.danger;
+    Color textColor = light ? AppColors.accentFg : AppColors.textPrimary;
+    Color borderColor =
+        light ? AppColors.inputFillLight : AppColors.surfaceBorder;
+    Color focusColor = light ? AppColors.accentFg : AppColors.accent;
+    Color errorColor = light ? AppColors.background : AppColors.danger;
+
+    OutlineInputBorder border(Color color, [double width = 1]) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppConstants.inputRadius),
+        borderSide: BorderSide(color: color, width: width),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -387,28 +509,12 @@ class AppTextField extends StatelessWidget {
               color: AppColors.textSecondary,
               fontSize: 14,
             ),
-            // Teks validasi: hitam di kartu putih agar selalu terbaca.
             errorStyle: TextStyle(color: errorColor, fontSize: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppConstants.inputRadius),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppConstants.inputRadius),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppConstants.inputRadius),
-              borderSide: BorderSide(color: focusedColor, width: 1.2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppConstants.inputRadius),
-              borderSide: BorderSide(color: errorColor),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppConstants.inputRadius),
-              borderSide: BorderSide(color: errorColor, width: 1.2),
-            ),
+            border: border(borderColor),
+            enabledBorder: border(borderColor),
+            focusedBorder: border(focusColor, 1.2),
+            errorBorder: border(errorColor),
+            focusedErrorBorder: border(errorColor, 1.2),
           ),
         ),
       ],

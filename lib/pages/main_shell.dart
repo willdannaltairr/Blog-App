@@ -7,7 +7,6 @@ import 'category_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 
-// Shell 4 tab + bottom nav pill melayang. Tombol [+] tengah = tambah artikel.
 class MainShell extends StatefulWidget {
   final int initialIndex;
   const MainShell({super.key, this.initialIndex = 0});

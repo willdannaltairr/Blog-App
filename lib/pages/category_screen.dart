@@ -5,7 +5,6 @@ import '../widgets/category_chip.dart';
 import '../widgets/common.dart';
 import 'category_articles_screen.dart';
 
-// Daftar kategori: hanya lihat + tambah. Tanpa edit/hapus.
 class CategoryScreen extends StatefulWidget {
   final bool inTab;
   const CategoryScreen({super.key, this.inTab = false});
@@ -63,10 +62,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
     if (name == null || !mounted) return;
     final trimmed = name.trim();
     if (trimmed.isEmpty) return;
-    // Cek duplikat di perangkat dulu biar pesan jelas tanpa ke server.
-    final bool duplikat = _cats.any(
+    bool sudahAda = _cats.any(
         (c) => c.name.trim().toLowerCase() == trimmed.toLowerCase());
-    if (duplikat) {
+    if (sudahAda) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Kategori "$trimmed" sudah ada')),
       );
@@ -104,76 +102,78 @@ class _CategoryScreenState extends State<CategoryScreen> {
                           const SizedBox(height: 12),
                       itemBuilder: (c, i) {
                         final cat = _cats[i];
-                        final n = _counts[cat.id] ?? 0;
+                        final jumlah = _counts[cat.id] ?? 0;
+                        String huruf = '?';
+                        if (cat.name.trim().isNotEmpty) {
+                          huruf = cat.name.trim()[0].toUpperCase();
+                        }
                         return GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CategoryArticlesScreen(
-                                category: cat,
-                              ),
-                            ),
-                          ),
-                          child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius:
-                                BorderRadius.circular(20),
-                            border: Border.all(
-                                color: AppColors.surfaceBorder),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent
-                                      .withValues(alpha: 0.15),
-                                  shape: BoxShape.circle,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CategoryArticlesScreen(
+                                  category: cat,
                                 ),
-                                child: Text(
-                                  cat.name.trim().isEmpty
-                                      ? '?'
-                                      : cat.name
-                                          .trim()[0]
-                                          .toUpperCase(),
-                                  style: const TextStyle(
-                                    color: AppColors.accent,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: AppColors.surfaceBorder),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent
+                                        .withValues(alpha: 0.15),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Text(
+                                    huruf,
+                                    style: const TextStyle(
+                                      color: AppColors.accent,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 18,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(cat.name,
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        cat.name,
                                         style: const TextStyle(
-                                          color: AppColors
-                                              .textPrimary,
-                                          fontWeight:
-                                              FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                          fontWeight: FontWeight.w700,
                                           fontSize: 15,
-                                        )),
-                                    Text('$n artikel',
+                                        ),
+                                      ),
+                                      Text(
+                                        '$jumlah artikel',
                                         style: const TextStyle(
-                                          color: AppColors
-                                              .textSecondary,
+                                          color: AppColors.textSecondary,
                                           fontSize: 12,
-                                        )),
-                                  ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
                         );
                       },
                     ),

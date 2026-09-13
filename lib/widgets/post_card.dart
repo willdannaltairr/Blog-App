@@ -5,11 +5,10 @@ import 'package:flutter/material.dart';
 import '../models/post_model.dart';
 import 'common.dart';
 
-bool isNetworkUrl(String url) =>
-    url.startsWith('http://') || url.startsWith('https://');
+bool isNetworkUrl(String url) {
+  return url.startsWith('http://') || url.startsWith('https://');
+}
 
-// Gambar artikel: dukung URL jaringan (cache) & file lokal hasil picker.
-// Selalu ada fallback agar null/kosong tidak crash.
 class PostImage extends StatelessWidget {
   final String? url;
   final double height;
@@ -67,8 +66,6 @@ class PostImage extends StatelessWidget {
   }
 }
 
-// Kartu feed 1 kolom penuh: avatar + nama + waktu, judul, isi singkat,
-// badge kategori, lalu gambar besar. Dipakai di semua daftar artikel.
 class PostFeedCard extends StatelessWidget {
   final PostModel post;
   final Map<int, String> categoryNames;
@@ -83,12 +80,11 @@ class PostFeedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var author = post.authorName.trim();
+    String author = post.authorName.trim();
     if (author.isEmpty) author = 'Anonymous';
-    final List<String> names = post.displayCategoryNames(categoryNames);
-    final String content = post.content.trim();
-    var huruf = 'A';
-    if (author.isNotEmpty) huruf = author[0].toUpperCase();
+    List<String> names = post.displayCategoryNames(categoryNames);
+    String content = post.content.trim();
+    String huruf = author.isNotEmpty ? author[0].toUpperCase() : 'A';
 
     return GestureDetector(
       onTap: onTap,

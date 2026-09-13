@@ -7,8 +7,6 @@ import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
 
-// Beranda ala Threads: foto+nama kiri, logo di tengah,
-// ikon search kanan, lalu feed artikel 1 kolom.
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onOpenSearch;
   final VoidCallback? onOpenProfile;
@@ -81,7 +79,6 @@ class _HomeScreenState extends State<HomeScreen> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // Navbar sticky di atas: profil kiri, logo tengah, search kanan.
               SliverAppBar(
                 pinned: true,
                 floating: false,
@@ -125,7 +122,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-              // Ruang bawah agar tidak tertutup bottom nav melayang.
               const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
@@ -135,13 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _topBarContent() {
-    // Materi: String, var, final, operator perbandingan & logika.
     final user = AuthService.currentUser;
-    var name = user?.username.trim() ?? '';
+    String name = user?.username.trim() ?? '';
     if (name.isEmpty) name = user?.name.trim() ?? '';
     if (name.isEmpty) name = 'Saya';
-    var initial = 'K';
-    if (name.isNotEmpty) initial = name[0].toUpperCase();
+    String initial = name.isNotEmpty ? name[0].toUpperCase() : 'K';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),

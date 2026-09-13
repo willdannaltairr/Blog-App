@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/common.dart';
 
-// Edit profil lokal (backend belum ada PUT /users/me).
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 

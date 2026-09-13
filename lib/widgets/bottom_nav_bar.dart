@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'common.dart';
 
-// Bottom navigation pill melayang, dibuat manual (tanpa package UI).
-// Susunan: Home - Artikel - [+] - Kategori - Profil.
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -85,7 +83,6 @@ class BottomNavBar extends StatelessWidget {
                 idle: Icons.article_outlined,
                 index: 1,
                 label: 'Artikel'),
-            // Tombol tengah menonjol.
             Expanded(
               child: Center(
                 child: GestureDetector(

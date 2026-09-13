@@ -6,7 +6,6 @@ import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_detail_screen.dart';
 
-// Daftar artikel dalam satu kategori. Dibuka saat kategori dipencet.
 class CategoryArticlesScreen extends StatefulWidget {
   final CategoryModel category;
 

@@ -6,7 +6,6 @@ import '../widgets/common.dart';
 import '../widgets/post_card.dart';
 import 'artikel_form_screen.dart';
 
-// Detail artikel: hero rounded, judul besar, sinopsis expandable.
 class ArtikelDetailScreen extends StatefulWidget {
   final int postId;
   final PostModel? initial;
@@ -199,9 +198,7 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Hero image besar rounded.
-                PostImage(
-                    url: p.imageUrl, height: 240, radius: 20),
+                PostImage(url: p.imageUrl, height: 240, radius: 20),
                 const SizedBox(height: 16),
                 if (p.displayCategoryNames(_catName).isNotEmpty)
                   Wrap(
