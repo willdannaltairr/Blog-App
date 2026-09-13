@@ -1,21 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/category_model.dart';
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_detail_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_detail_page.dart';
 
-class ArtikelScreen extends StatefulWidget {
-  const ArtikelScreen({super.key});
+class ArtikelPage extends StatefulWidget {
+  const ArtikelPage({super.key});
 
   @override
-  State<ArtikelScreen> createState() => _ArtikelScreenState();
+  State<ArtikelPage> createState() => _ArtikelPageState();
 }
 
-class _ArtikelScreenState extends State<ArtikelScreen> {
+class _ArtikelPageState extends State<ArtikelPage> {
   final _search = TextEditingController();
   Timer? _debounce;
   List<CategoryModel> _cats = [];
@@ -88,7 +85,7 @@ class _ArtikelScreenState extends State<ArtikelScreen> {
     final changed = await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (_) => ArtikelDetailScreen(postId: p.id)),
+          builder: (_) => ArtikelDetailPage(postId: p.id)),
     );
     if (changed == true && mounted) _reload();
   }

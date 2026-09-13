@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_form_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_form_page.dart';
 
-class ArtikelDetailScreen extends StatefulWidget {
+class ArtikelDetailPage extends StatefulWidget {
   final int postId;
   final PostModel? initial;
 
-  const ArtikelDetailScreen({super.key, required this.postId, this.initial});
+  const ArtikelDetailPage({super.key, required this.postId, this.initial});
 
   @override
-  State<ArtikelDetailScreen> createState() => _ArtikelDetailScreenState();
+  State<ArtikelDetailPage> createState() => _ArtikelDetailPageState();
 }
 
-class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
+class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
   PostModel? _post;
   final Map<int, String> _catName = {};
   bool _loading = true;
@@ -128,7 +126,7 @@ class _ArtikelDetailScreenState extends State<ArtikelDetailScreen> {
     final changed = await Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (_) => ArtikelFormScreen(postToEdit: _post)),
+          builder: (_) => ArtikelFormPage(postToEdit: _post)),
     );
     if (changed == true && mounted) _load();
   }

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import 'login_screen.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'login_page.dart';
 import 'main_shell.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashPageState extends State<SplashPage> {
   double _opacity = 0;
 
   @override
@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
     final next = AuthService.isLoggedIn
         ? const MainShell()
-        : const LoginScreen();
+        : const LoginPage();
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(

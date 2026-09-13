@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
 import 'main_shell.dart';
-import 'register_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nama = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _sembunyi = true;
@@ -22,12 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _nama.dispose();
     _email.dispose();
     _password.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _daftar() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -36,11 +37,19 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await AuthService.login(_email.text, _password.text);
+      await AuthService.register(
+        name: _nama.text,
+        email: _email.text,
+        password: _password.text,
+      );
       if (!mounted) return;
-      Navigator.pushReplacement(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registrasi berhasil. Selamat datang!')),
+      );
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MainShell()),
+        (route) => false,
       );
     } catch (e) {
       setState(() {
@@ -64,12 +73,20 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 10),
-              const AuthTitle('Login'),
-              const SizedBox(height: 28),
+              const AuthTitle('Register'),
+              const SizedBox(height: 24),
               if (_error != null) ...[
                 FormErrorBanner(message: _error!, light: true),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
               ],
+              AppTextField(
+                light: true,
+                controller: _nama,
+                label: 'Name',
+                hint: 'Your name',
+                validator: (value) => validateRequired(value, 'Name'),
+              ),
+              const SizedBox(height: 12),
               AppTextField(
                 light: true,
                 controller: _email,
@@ -78,12 +95,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 validator: validateEmail,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               AppTextField(
                 light: true,
                 controller: _password,
                 label: 'Password',
-                hint: 'Enter your password',
+                hint: 'Minimum 6 characters',
                 obscure: _sembunyi,
                 validator: validatePassword,
                 suffix: IconButton(
@@ -100,21 +117,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
               AuthPrimaryButton(
-                label: 'Login',
+                label: 'Register',
                 loading: _loading,
-                onPressed: _login,
+                onPressed: _daftar,
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               AuthSwitchRow(
-                prefix: "Don't have any account? ",
-                action: 'Sign Up',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const RegisterScreen()),
-                  );
-                },
+                prefix: 'Already have an account? ',
+                action: 'Login',
+                onTap: () => Navigator.pop(context),
               ),
             ],
           ),

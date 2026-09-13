@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
-import 'artikel_detail_screen.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
+import 'artikel_detail_page.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomePage extends StatefulWidget {
   final VoidCallback? onOpenSearch;
   final VoidCallback? onOpenProfile;
 
-  const HomeScreen({
+  const HomePage({
     super.key,
     this.onOpenSearch,
     this.onOpenProfile,
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomePageState extends State<HomePage> {
   List<PostModel> _posts = [];
   final Map<int, String> _catName = {};
   bool _loading = true;
@@ -63,7 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _openDetail(PostModel p) async {
     final changed = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ArtikelDetailScreen(postId: p.id)),
+      MaterialPageRoute(builder: (_) => ArtikelDetailPage(postId: p.id)),
     );
     if (changed == true && mounted) _load();
   }

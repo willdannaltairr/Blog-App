@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/category_model.dart';
-import '../models/post_model.dart';
-import '../services/api_service.dart';
-import '../services/auth_service.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/common.dart';
-import '../widgets/post_card.dart';
+import '../models/models.dart';
+import '../services/api.dart';
+import '../widgets/widgets.dart';
 
-class ArtikelFormScreen extends StatefulWidget {
+class ArtikelFormPage extends StatefulWidget {
   final PostModel? postToEdit;
-  const ArtikelFormScreen({super.key, this.postToEdit});
+  const ArtikelFormPage({super.key, this.postToEdit});
 
   @override
-  State<ArtikelFormScreen> createState() => _ArtikelFormScreenState();
+  State<ArtikelFormPage> createState() => _ArtikelFormPageState();
 }
 
-class _ArtikelFormScreenState extends State<ArtikelFormScreen> {
+class _ArtikelFormPageState extends State<ArtikelFormPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _title;
   late final TextEditingController _content;
