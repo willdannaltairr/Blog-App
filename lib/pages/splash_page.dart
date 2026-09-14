@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../services/auth_service.dart';
+import '../widgets/theme.dart';
 import 'login_page.dart';
 import 'main_shell.dart';
 

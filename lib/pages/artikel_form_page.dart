@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../models/models.dart';
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../models/content_model.dart';
+import '../services/auth_service.dart';
+import '../services/blog_service.dart';
+import '../widgets/theme.dart';
+import '../widgets/common_widgets.dart';
+import '../widgets/post_widgets.dart';
 
 class ArtikelFormPage extends StatefulWidget {
   final PostModel? postToEdit;
@@ -50,7 +53,7 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
 
   Future<void> _loadCats() async {
     try {
-      final cats = await ApiService.getCategories();
+      final cats = await BlogService.getCategories();
       if (!mounted) return;
       setState(() {
         _cats = cats;
@@ -90,7 +93,7 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
       }
     }
     try {
-      final created = await ApiService.createCategory(trimmed);
+      final created = await BlogService.createCategory(trimmed);
       if (!mounted) return;
       setState(() {
         _cats = [..._cats, created];
@@ -157,7 +160,7 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
       String author = _author.text.trim();
       if (author.isEmpty) author = profileName;
       if (!isEdit) {
-        await ApiService.createPost(
+        await BlogService.createPost(
           title: _title.text,
           content: _content.text,
           author: author,
@@ -165,7 +168,7 @@ class _ArtikelFormPageState extends State<ArtikelFormPage> {
           categoryIds: ids,
         );
       } else {
-        await ApiService.updatePost(
+        await BlogService.updatePost(
           id: widget.postToEdit!.id,
           title: _title.text,
           content: _content.text,

@@ -1,7 +1,7 @@
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import '../models/models.dart';
+import '../models/content_model.dart';
 import 'theme.dart';
 
 class PostImage extends StatelessWidget {

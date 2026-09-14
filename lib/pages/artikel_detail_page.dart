@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../models/content_model.dart';
+import '../services/auth_service.dart';
+import '../services/blog_service.dart';
+import '../widgets/theme.dart';
+import '../widgets/common_widgets.dart';
+import '../widgets/post_widgets.dart';
 import 'artikel_form_page.dart';
 
 class ArtikelDetailPage extends StatefulWidget {
@@ -42,8 +45,8 @@ class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
       _error = null;
     });
     try {
-      final cats = await ApiService.getCategories();
-      final p = await ApiService.getPostById(widget.postId);
+      final cats = await BlogService.getCategories();
+      final p = await BlogService.getPostById(widget.postId);
       final names = {for (final c in cats) c.id: c.name};
       if (!mounted) return;
       setState(() {
@@ -84,7 +87,7 @@ class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
     if (ok != true || _post == null) return;
     setState(() => _deleting = true);
     try {
-      await ApiService.deletePost(_post!.id);
+      await BlogService.deletePost(_post!.id);
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {

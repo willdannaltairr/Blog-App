@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../models/content_model.dart';
+import '../services/blog_service.dart';
+import '../widgets/theme.dart';
+import '../widgets/common_widgets.dart';
+import '../widgets/post_widgets.dart';
 import 'artikel_detail_page.dart';
 
 class CategoryPage extends StatefulWidget {
@@ -29,8 +31,8 @@ class _CategoryPageState extends State<CategoryPage> {
       _error = null;
     });
     try {
-      final cats = await ApiService.getCategories();
-      final posts = await ApiService.getPosts();
+      final cats = await BlogService.getCategories();
+      final posts = await BlogService.getPosts();
       final counts = <int, int>{};
       for (final p in posts) {
         for (final id in p.allCategoryIds) {
@@ -69,7 +71,7 @@ class _CategoryPageState extends State<CategoryPage> {
       return;
     }
     try {
-      await ApiService.createCategory(trimmed);
+      await BlogService.createCategory(trimmed);
       if (mounted) _load();
     } catch (e) {
       if (!mounted) return;
@@ -242,8 +244,8 @@ class _CategoryArticlesPageState
       _error = null;
     });
     try {
-      final cats = await ApiService.getCategories();
-      final posts = await ApiService.getPosts();
+      final cats = await BlogService.getCategories();
+      final posts = await BlogService.getPosts();
       if (!mounted) return;
       final names = {for (final c in cats) c.id: c.name};
       setState(() {

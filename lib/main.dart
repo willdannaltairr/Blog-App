@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/splash_page.dart';
-import 'services/api.dart';
-import 'widgets/widgets.dart';
+import 'services/auth_service.dart';
+import 'widgets/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

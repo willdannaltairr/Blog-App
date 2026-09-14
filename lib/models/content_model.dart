@@ -1,4 +1,4 @@
-import 'model_utils.dart';
+import 'user_model.dart';
 
 class CategoryModel {
   final int id;

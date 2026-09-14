@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../widgets/widgets.dart';
+import '../widgets/theme.dart';
+import '../widgets/post_widgets.dart';
 import 'artikel_form_page.dart';
 import 'artikel_page.dart';
 import 'category_page.dart';

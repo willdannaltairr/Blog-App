@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../services/auth_service.dart';
+import '../widgets/theme.dart';
+import '../widgets/auth_widgets.dart';
+import '../widgets/common_widgets.dart';
 import 'main_shell.dart';
 import 'register_page.dart';
 

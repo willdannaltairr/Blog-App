@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../services/api.dart';
-import '../widgets/widgets.dart';
+import '../models/content_model.dart';
+import '../services/blog_service.dart';
+import '../widgets/theme.dart';
+import '../widgets/common_widgets.dart';
+import '../widgets/post_widgets.dart';
 import 'artikel_detail_page.dart';
 
 class ArtikelPage extends StatefulWidget {
@@ -39,9 +41,9 @@ class _ArtikelPageState extends State<ArtikelPage> {
   Future<void> _reload() async {
     if (_loading == false) setState(() => _searching = true);
     try {
-      final cats = await ApiService.getCategories();
+      final cats = await BlogService.getCategories();
       final posts =
-          await ApiService.getPosts(search: _search.text);
+          await BlogService.getPosts(search: _search.text);
       if (!mounted) return;
       final names = {for (final c in cats) c.id: c.name};
       setState(() {
